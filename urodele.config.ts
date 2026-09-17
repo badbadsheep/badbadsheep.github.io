@@ -3,7 +3,7 @@ export const config = {
     login: "badbadsheep", // github login name, not user name
     repo: "badbadsheep.github.io", //"urodele",
     logInUrl: "",
-    logInAuthUrl: "",
+    logInAuthUrl: "", 
   },
   head: {
     title: "Urodele",
