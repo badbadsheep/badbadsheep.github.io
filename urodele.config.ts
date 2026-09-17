@@ -7,7 +7,7 @@ export const config = {
   },
   head: {
     title: "Urodele",
-    brand: "Urodele",
+    brand: "Urodele", 
     description: "A self-owned full-static blog system",
   },
   footer: {
