@@ -1,0 +1,1283 @@
+/* ═══════════════════════════════════════════════════════════════════
+   拾光集 · 自定义主题
+   设计基调：纸张 + 玻璃拟态 + 宋体正文；深色模式取 One Dark Pro 配色。
+   目录：
+     01 设计令牌（明/暗）
+     02 页面底板与内容卡片
+     03 正文排版
+     04 链接 / 引用 / 代码 / 表格
+     05 顶栏与页签（玻璃拟态）
+     06 搜索框
+     07 左侧导航
+     08 右侧目录 + 阅读进度
+     09 提示框 Admonition
+     10 滚动条
+     11 首页 Hero
+     12 博客列表 / 文章卡片
+     13 阅读指标与评论区
+     14 响应式与打印
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 01 设计令牌 ─────────────────────────────────────────────────── */
+:root {
+  /* ★ 关键：声明本站同时支持明暗两套配色。
+     Material 会在运行时往 <head> 插一个 <meta name="color-scheme">，内容只有
+     当前这一种（浅色模式下就是 "light"）。手机浏览器（Chrome / 三星浏览器）
+     的「强制深色网页」一看到页面没声明支持深色，就会把浅色页面强行反色 ——
+     结果白天模式也被涂成黑的，看起来「明暗没区别」。
+     这里在根元素上用 CSS 声明 light dark（CSS 的优先级高于 meta），
+     浏览器就知道「这站自己会处理深色」，不再插手。 */
+  color-scheme: light dark;
+
+  /* 纸张与网格 */
+  --paper-base: #fcfcfc;
+  --paper: #ffffff;
+  --paper-alt: #f9fbff;
+  --card-bg: rgba(255, 255, 255, 0.86);
+  --grid-line: rgba(30, 30, 30, 0.035);
+  --grid-line-bold: rgba(30, 30, 30, 0.06);
+
+  /* 墨色 */
+  --ink-strong: #0c0c0c;
+  --ink: #2a2a2a;
+  --ink-soft: #4a4a4a;
+  --ink-faint: #6b7280;
+
+  /* 强调色 */
+  --accent-cool: #3a8bff;
+  --accent-warm: #ff9a3c;
+  --accent-gold: #c3a569;
+
+  /* 线条与代码 */
+  --line-quiet: rgba(0, 0, 0, 0.1);
+  --line-strong: rgba(0, 0, 0, 0.18);
+  --code-bg: #f7f8fc;
+  --code-line: rgba(0, 0, 0, 0.08);
+  --code-title-bg: #243b53;
+  --code-title-fg: #eef3f8;
+
+  /* 尺寸 */
+  --radius-card: 14px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Material 变量对接 */
+  --md-default-bg-color: var(--paper-base);
+  --md-typeset-a-color: var(--accent-cool);
+  --md-accent-fg-color: var(--accent-cool);
+  --md-code-bg-color: var(--code-bg);
+  --md-code-fg-color: #1f2937;
+}
+
+/* 深色模式：One Dark Pro */
+[data-md-color-scheme="slate"] {
+  --odp-bg: #282c34;
+  --odp-bg-light: #21252b;
+  --odp-bg-highlight: #2c313a;
+  --odp-fg: #abb2bf;
+  --odp-fg-dim: #5c6370;
+  --odp-red: #e06c75;
+  --odp-green: #98c379;
+  --odp-yellow: #e5c07b;
+  --odp-orange: #d19a66;
+  --odp-blue: #61afef;
+  --odp-purple: #c678dd;
+  --odp-cyan: #56b6c2;
+
+  --paper-base: var(--odp-bg);
+  --paper: var(--odp-bg-light);
+  --paper-alt: var(--odp-bg-highlight);
+  --card-bg: rgba(33, 37, 43, 0.62);
+  --grid-line: rgba(255, 255, 255, 0.016);
+  --grid-line-bold: rgba(255, 255, 255, 0.032);
+
+  --ink-strong: #e8eaed;
+  /* 正文墨色：比 One Dark Pro 的默认前景 #abb2bf 亮一档。
+     原先正文对底色的对比度约 6.6:1，手机上看着发灰；提亮后约 8.6:1。 */
+  --ink: #c3c9d5;
+  --ink-soft: #b7bec9;
+  --ink-faint: #8b93a1;
+
+  --accent-cool: var(--odp-blue);
+  --accent-warm: var(--odp-orange);
+  --accent-gold: #d8b978;
+
+  --line-quiet: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --code-bg: var(--odp-bg-light);
+  --code-line: rgba(255, 255, 255, 0.07);
+  --code-title-bg: var(--odp-bg-highlight);
+  --code-title-fg: var(--odp-fg);
+
+  --md-default-bg-color: var(--odp-bg);
+  --md-default-fg-color: var(--odp-fg);
+  --md-default-fg-color--light: var(--odp-fg-dim);
+  --md-default-fg-color--lighter: rgba(171, 178, 191, 0.5);
+  --md-default-fg-color--lightest: rgba(171, 178, 191, 0.28);
+  --md-primary-fg-color: var(--odp-bg-light);
+  --md-primary-bg-color: var(--odp-fg);
+  --md-accent-fg-color: var(--odp-blue);
+  --md-typeset-a-color: var(--odp-blue);
+  --md-code-bg-color: var(--odp-bg-light);
+  --md-code-fg-color: var(--odp-fg);
+  --md-footer-bg-color: var(--odp-bg-light);
+  --md-footer-fg-color: var(--odp-fg);
+}
+
+/* ── 02 页面底板与内容卡片 ───────────────────────────────────────── */
+body {
+  background-color: var(--paper-base);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(var(--grid-line-bold) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line-bold) 1px, transparent 1px);
+  background-size: 32px 32px, 32px 32px, 160px 160px, 160px 160px;
+  background-attachment: fixed;
+}
+
+.md-main {
+  background: transparent;
+}
+
+.md-grid {
+  max-width: min(96rem, max(84%, 64rem));
+}
+
+.md-content {
+  background: var(--card-bg);
+  border: 1px solid var(--line-quiet);
+  border-radius: var(--radius-card);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 8px 28px rgba(0, 0, 0, 0.04);
+  padding: 1.2rem 1.8rem 2rem;
+  margin: 0.6rem 0.4rem 1.6rem;
+}
+
+[data-md-color-scheme="slate"] .md-content {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 10px 32px rgba(0, 0, 0, 0.28);
+}
+
+.md-content__inner {
+  padding-bottom: 0.6rem;
+}
+
+/* ── 03 正文排版 ─────────────────────────────────────────────────── */
+.md-typeset {
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun",
+    Georgia, "Times New Roman", serif;
+  color: var(--ink);
+  line-height: 1.82;
+  font-size: 0.78rem;
+  -webkit-font-smoothing: antialiased;
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4,
+.md-typeset h5,
+.md-typeset h6 {
+  color: var(--ink-strong);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.md-typeset h1 {
+  font-weight: 800;
+  font-size: 1.85em;
+  margin: 0 0 1rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 2px solid var(--line-quiet);
+}
+
+.md-typeset h2 {
+  font-size: 1.4em;
+  margin: 2.2rem 0 0.7rem;
+  padding-left: 0.6rem;
+  border-left: 4px solid var(--accent-cool);
+  border-radius: 2px;
+}
+
+.md-typeset h3 {
+  font-size: 1.18em;
+  margin: 1.7rem 0 0.5rem;
+}
+
+.md-typeset h4 {
+  font-size: 1.04em;
+  margin: 1.4rem 0 0.4rem;
+}
+
+/* 标题锚点：悬停才显现，减少视觉噪声 */
+.md-typeset .headerlink {
+  color: var(--ink-faint);
+  opacity: 0;
+  transition: opacity var(--transition), color var(--transition);
+}
+
+.md-typeset h1:hover .headerlink,
+.md-typeset h2:hover .headerlink,
+.md-typeset h3:hover .headerlink,
+.md-typeset h4:hover .headerlink {
+  opacity: 0.7;
+}
+
+.md-typeset .headerlink:hover {
+  color: var(--accent-cool);
+  opacity: 1;
+}
+
+.md-typeset p {
+  margin: 0.75em 0;
+}
+
+.md-typeset ul li::marker,
+.md-typeset ol li::marker {
+  color: var(--accent-cool);
+}
+
+.md-typeset hr {
+  border: 0;
+  border-top: 1.5px solid var(--line-strong) !important;
+  opacity: 1;
+  margin: 2rem 0;
+}
+
+.md-typeset mark {
+  background: linear-gradient(transparent 58%, rgba(255, 165, 0, 0.42) 58%);
+  color: inherit;
+  padding: 0 0.1em;
+  font-weight: 600;
+}
+
+.md-typeset img {
+  border-radius: var(--radius-md);
+}
+
+.md-typeset figcaption {
+  color: var(--ink-faint);
+  font-size: 0.85em;
+}
+
+/* ── 04 链接 / 引用 / 代码 / 表格 ────────────────────────────────── */
+.md-typeset a {
+  color: var(--accent-cool);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-cool) 38%, transparent);
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.md-typeset a:hover {
+  color: var(--accent-warm);
+  border-bottom-color: color-mix(in srgb, var(--accent-warm) 65%, transparent);
+}
+
+.md-typeset blockquote {
+  position: relative;
+  margin: 1.1rem 0;
+  padding: 0.55rem 1rem;
+  border: none;
+  border-left: 3px solid color-mix(in srgb, var(--accent-cool) 55%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent-cool) 6%, transparent);
+  color: var(--ink-soft);
+  font-size: 0.95em;
+}
+
+.md-typeset blockquote p {
+  margin: 0.3em 0;
+}
+
+.md-typeset blockquote > :first-child {
+  margin-top: 0;
+}
+
+.md-typeset blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/* 行内代码 */
+.md-typeset code {
+  background: var(--code-bg);
+  border: 1px solid var(--code-line);
+  border-radius: 4px;
+  padding: 0.1rem 0.32rem;
+  font-size: 0.86em;
+  color: color-mix(in srgb, var(--odp-red, #e06c75) 85%, var(--ink));
+  word-break: break-word;
+}
+
+[data-md-color-scheme="default"] .md-typeset code {
+  color: #b4325a;
+}
+
+/* 代码块 */
+.md-typeset pre > code {
+  background: var(--code-bg);
+  border: 1px solid var(--code-line);
+  border-radius: var(--radius-md);
+  box-shadow: none;
+  line-height: 1.72;
+  font-size: 0.8em;
+}
+
+.md-typeset .highlight,
+.md-typeset .highlighttable {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.md-typeset .highlight .filename,
+.md-typeset .highlighttable .filename {
+  background: var(--code-title-bg);
+  color: var(--code-title-fg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  font-size: 0.75em;
+  letter-spacing: 0.02em;
+}
+
+.md-typeset .md-clipboard {
+  color: var(--ink-faint);
+}
+
+.md-typeset .md-clipboard:hover {
+  color: var(--accent-cool);
+}
+
+/* 表格 */
+.md-typeset table:not([class]) {
+  background: var(--paper);
+  border: 1px solid var(--line-quiet);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: none;
+  font-size: 0.85em;
+}
+
+.md-typeset table:not([class]) th {
+  background: color-mix(in srgb, var(--accent-cool) 8%, var(--paper));
+  color: var(--ink-strong);
+  font-weight: 700;
+}
+
+.md-typeset table:not([class]) tr:nth-child(2n) {
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+}
+
+.md-typeset table:not([class]) td {
+  border-top: 1px solid var(--line-quiet);
+}
+
+/* 任务列表 */
+.md-typeset .task-list-indicator::before {
+  background-color: var(--ink-faint);
+}
+
+.md-typeset [type="checkbox"]:checked + .task-list-indicator::before {
+  background-color: var(--accent-cool);
+}
+
+/* ── 05 顶栏与页签（玻璃拟态） ───────────────────────────────────── */
+.md-header {
+  position: relative;
+  background: color-mix(in srgb, var(--paper) 88%, transparent) !important;
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border-bottom: none !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  color: var(--ink-strong);
+}
+
+/* 底部金色渐变发丝线 —— 参考站点的标志性细节 */
+.md-header::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 5%;
+  right: 5%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--accent-gold) 30%, transparent) 25%,
+    color-mix(in srgb, var(--accent-gold) 55%, transparent) 50%,
+    color-mix(in srgb, var(--accent-gold) 30%, transparent) 75%,
+    transparent
+  );
+}
+
+[data-md-color-scheme="slate"] .md-header {
+  background: color-mix(in srgb, var(--odp-bg-light) 86%, transparent) !important;
+  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.32);
+}
+
+.md-header__title,
+.md-header__topic,
+.md-header__button,
+.md-logo,
+.md-header__source {
+  color: var(--ink-strong) !important;
+}
+
+.md-header__button:hover {
+  color: var(--accent-cool) !important;
+  opacity: 1;
+}
+
+.md-header__title {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.md-header__source {
+  opacity: 0.85;
+}
+
+.md-header__source:hover {
+  opacity: 1;
+}
+
+.md-header[data-md-state="shadow"],
+.md-header--shadow {
+  box-shadow: 0 4px 26px rgba(0, 0, 0, 0.08);
+}
+
+[data-md-color-scheme="slate"] .md-header[data-md-state="shadow"],
+[data-md-color-scheme="slate"] .md-header--shadow {
+  box-shadow: 0 4px 26px rgba(0, 0, 0, 0.45);
+}
+
+.md-tabs {
+  background: color-mix(in srgb, var(--paper) 74%, transparent) !important;
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border-bottom: 1px solid var(--line-quiet) !important;
+  color: var(--ink);
+}
+
+[data-md-color-scheme="slate"] .md-tabs {
+  background: color-mix(in srgb, var(--odp-bg-highlight) 78%, transparent) !important;
+}
+
+.md-tabs__link {
+  color: var(--ink-soft) !important;
+  opacity: 1;
+  font-weight: 500;
+  transition: color var(--transition);
+}
+
+.md-tabs__link:hover,
+.md-tabs__link--active {
+  color: var(--accent-cool) !important;
+}
+
+.md-tabs__item .md-tabs__link--active {
+  font-weight: 700;
+}
+
+/* 页签下拉（鼠标悬停的一级栏目菜单） */
+.md-tabs__dropdown,
+.md-nav--primary .md-nav__list {
+  border-radius: var(--radius-md);
+}
+
+/* ── 06 搜索框 ───────────────────────────────────────────────────── */
+.md-search__form {
+  background: color-mix(in srgb, var(--ink) 5%, transparent) !important;
+  border: 1px solid var(--line-quiet);
+  border-radius: var(--radius-md);
+  transition: background var(--transition), border-color var(--transition),
+    box-shadow var(--transition);
+}
+
+.md-search__form:hover {
+  background: color-mix(in srgb, var(--ink) 8%, transparent) !important;
+  border-color: var(--line-strong);
+}
+
+.md-search__form:focus-within {
+  background: var(--paper) !important;
+  border-color: var(--accent-cool);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cool) 18%, transparent);
+}
+
+.md-search__input,
+.md-search__input::placeholder {
+  color: var(--ink-strong) !important;
+}
+
+.md-search__icon {
+  color: var(--ink-faint) !important;
+}
+
+.md-search__form:focus-within .md-search__icon {
+  color: var(--accent-cool) !important;
+}
+
+.md-search__output {
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.14);
+  background: var(--paper);
+}
+
+[data-md-color-scheme="slate"] .md-search__output {
+  background: var(--odp-bg-light);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* ── 07 左侧导航 ─────────────────────────────────────────────────── */
+@media screen and (min-width: 76.25em) {
+  .md-sidebar--primary,
+  .md-sidebar--secondary {
+    min-width: 15rem;
+  }
+}
+
+.md-sidebar--primary .md-nav__link {
+  border-radius: var(--radius-sm);
+  color: var(--ink-soft);
+  transition: background var(--transition), color var(--transition),
+    transform var(--transition), padding-left var(--transition);
+}
+
+/* 层级缩进：逐级递进，便于扫读 */
+.md-sidebar--primary .md-nav__item > .md-nav__link {
+  padding-left: 0.8rem;
+}
+
+.md-sidebar--primary .md-nav__list .md-nav__list > .md-nav__item > .md-nav__link {
+  padding-left: 1.6rem;
+}
+
+.md-sidebar--primary .md-nav__list .md-nav__list .md-nav__list > .md-nav__item > .md-nav__link {
+  padding-left: 2.4rem;
+}
+
+.md-sidebar--primary .md-nav__list .md-nav__list .md-nav__list .md-nav__list > .md-nav__item > .md-nav__link {
+  padding-left: 3.1rem;
+}
+
+.md-sidebar--primary .md-nav__link:hover {
+  background: color-mix(in srgb, var(--accent-cool) 10%, transparent);
+  color: var(--ink-strong);
+  transform: translateX(4px);
+}
+
+.md-sidebar--primary .md-nav__link--active,
+.md-sidebar--primary .md-nav__item--active > .md-nav__link {
+  color: var(--ink-strong);
+  font-weight: 700;
+}
+
+.md-sidebar--primary .md-nav__link--active::before {
+  content: "";
+  position: absolute;
+  left: -0.05rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 1.05rem;
+  border-radius: 2px;
+  background: var(--accent-cool);
+}
+
+.md-sidebar--primary .md-nav__link {
+  position: relative;
+}
+
+.md-nav__title {
+  color: var(--ink-strong);
+  font-weight: 700;
+}
+
+/* 侧栏 / 抽屉顶部那条「层级标题」（例如「博客」＋返回箭头）。
+   Material 默认给它一块灰色底 + 暗色字，深色模式下几乎看不见，
+   这里统一换成高对比的浅色面板。 */
+.md-nav--primary .md-nav__title {
+  background: color-mix(in srgb, var(--paper) 94%, transparent) !important;
+  color: var(--ink-strong) !important;
+  border-bottom: 1px solid var(--line-quiet);
+  box-shadow: none !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.md-nav--primary .md-nav__title[for="__drawer"] {
+  background: color-mix(in srgb, var(--paper) 94%, transparent) !important;
+  color: var(--ink-strong) !important;
+}
+
+/* 层级标题栏右上角的「返回首页」按钮（由 javascripts/extra.js 注入）。
+   抽屉里展开任意栏目后，标题会被换成栏目名，这个按钮保证随时能回首页。 */
+.md-nav__home {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.18rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-cool) 40%, transparent);
+  background: color-mix(in srgb, var(--accent-cool) 12%, transparent);
+  color: var(--accent-cool) !important;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.6;
+  text-decoration: none !important;
+  transition: background var(--transition), color var(--transition);
+}
+
+.md-nav__home:hover {
+  background: var(--accent-cool);
+  color: #fff !important;
+}
+
+/* ── 08 右侧目录 + 阅读进度 ──────────────────────────────────────── */
+.md-sidebar--secondary {
+  position: relative;
+}
+
+/* 整条阅读进度指示（由 extra.js 写入 --scroll-progress） */
+.md-sidebar--secondary::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: var(--scroll-progress, 0%);
+  max-height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #e74c3c, #f39c12, #3498db);
+  opacity: 0.85;
+  transition: height 0.18s ease-out;
+}
+
+.md-nav--secondary .md-nav__title {
+  background: transparent;
+  box-shadow: none;
+}
+
+.md-sidebar--secondary .md-nav__link {
+  position: relative;
+  border-radius: var(--radius-sm);
+  padding-left: 0.4rem;
+  transition: color var(--transition), background var(--transition),
+    transform var(--transition);
+}
+
+.md-nav--secondary > .md-nav__list > .md-nav__item > .md-nav__link {
+  color: var(--ink-strong);
+  font-weight: 600;
+}
+
+.md-nav--secondary .md-nav__list .md-nav__list > .md-nav__item > .md-nav__link {
+  color: var(--ink-soft);
+  padding-left: 1.15rem;
+}
+
+.md-nav--secondary .md-nav__list .md-nav__list .md-nav__list > .md-nav__item > .md-nav__link {
+  color: var(--ink-faint);
+  padding-left: 1.9rem;
+  font-size: 0.72rem;
+}
+
+.md-sidebar--secondary .md-nav__link:hover {
+  background: color-mix(in srgb, var(--accent-cool) 10%, transparent);
+  color: var(--accent-cool);
+  transform: translateX(3px);
+}
+
+.md-sidebar--secondary .md-nav__link--active,
+.md-sidebar--secondary .md-nav__item--active > .md-nav__link {
+  color: var(--accent-cool);
+  font-weight: 700;
+}
+
+.md-sidebar--secondary .md-nav__link--active::before {
+  content: "";
+  position: absolute;
+  left: -0.55rem;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #e74c3c, #f39c12);
+}
+
+/* ── 09 提示框 Admonition ────────────────────────────────────────── */
+.md-typeset .admonition,
+.md-typeset details {
+  border: none;
+  border-left: 4px solid var(--md-default-fg-color--lighter);
+  border-radius: var(--radius-card);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  font-size: 0.78rem;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .admonition,
+[data-md-color-scheme="slate"] .md-typeset details {
+  box-shadow: none;
+  background: var(--odp-bg-light);
+}
+
+.md-typeset .admonition-title,
+.md-typeset details summary {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: none;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+/* 各类提示的配色（浅色模式） */
+.md-typeset .admonition.note,
+.md-typeset details.note {
+  border-left-color: #2563eb;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.11), rgba(37, 99, 235, 0.03) 55%, var(--paper));
+}
+.md-typeset .admonition.note > .admonition-title,
+.md-typeset details.note > summary {
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.16), rgba(37, 99, 235, 0.05));
+  color: #1d4ed8;
+}
+
+.md-typeset .admonition.tip,
+.md-typeset details.tip,
+.md-typeset .admonition.hint,
+.md-typeset details.hint {
+  border-left-color: #0f9f79;
+  background: linear-gradient(135deg, rgba(15, 159, 121, 0.12), rgba(15, 159, 121, 0.03) 55%, var(--paper));
+}
+.md-typeset .admonition.tip > .admonition-title,
+.md-typeset details.tip > summary,
+.md-typeset .admonition.hint > .admonition-title,
+.md-typeset details.hint > summary {
+  background: linear-gradient(90deg, rgba(15, 159, 121, 0.17), rgba(15, 159, 121, 0.05));
+  color: #0d7c5f;
+}
+
+.md-typeset .admonition.warning,
+.md-typeset details.warning,
+.md-typeset .admonition.caution,
+.md-typeset details.caution {
+  border-left-color: #ff9100;
+  background: linear-gradient(135deg, rgba(255, 145, 0, 0.12), rgba(255, 145, 0, 0.03) 55%, var(--paper));
+}
+.md-typeset .admonition.warning > .admonition-title,
+.md-typeset details.warning > summary {
+  background: linear-gradient(90deg, rgba(255, 145, 0, 0.18), rgba(255, 145, 0, 0.05));
+  color: #b45309;
+}
+
+.md-typeset .admonition.danger,
+.md-typeset details.danger,
+.md-typeset .admonition.error,
+.md-typeset details.error {
+  border-left-color: #ff1744;
+  background: linear-gradient(135deg, rgba(255, 23, 68, 0.1), rgba(255, 23, 68, 0.03) 55%, var(--paper));
+}
+.md-typeset .admonition.danger > .admonition-title,
+.md-typeset details.danger > summary {
+  background: linear-gradient(90deg, rgba(255, 23, 68, 0.16), rgba(255, 23, 68, 0.05));
+  color: #b91c1c;
+}
+
+.md-typeset .admonition.important,
+.md-typeset details.important {
+  border-left-color: #a21caf;
+  background: linear-gradient(135deg, rgba(162, 28, 175, 0.12), rgba(162, 28, 175, 0.03) 55%, var(--paper));
+}
+.md-typeset .admonition.important > .admonition-title,
+.md-typeset details.important > summary {
+  background: linear-gradient(90deg, rgba(162, 28, 175, 0.17), rgba(162, 28, 175, 0.05));
+  color: #86198f;
+}
+
+.md-typeset .admonition.example,
+.md-typeset details.example,
+.md-typeset .admonition.quote,
+.md-typeset details.quote {
+  border-left-color: #7c4dff;
+  background: linear-gradient(135deg, rgba(124, 77, 255, 0.11), rgba(124, 77, 255, 0.03) 55%, var(--paper));
+}
+.md-typeset .admonition.example > .admonition-title,
+.md-typeset details.example > summary {
+  background: linear-gradient(90deg, rgba(124, 77, 255, 0.16), rgba(124, 77, 255, 0.05));
+  color: #5b21b6;
+}
+
+/* 深色模式下的提示配色 */
+[data-md-color-scheme="slate"] .md-typeset .admonition.note,
+[data-md-color-scheme="slate"] .md-typeset details.note {
+  border-left-color: #78c2ff;
+  background: linear-gradient(135deg, rgba(97, 175, 239, 0.2), rgba(97, 175, 239, 0.06) 55%, var(--odp-bg-light));
+}
+[data-md-color-scheme="slate"] .md-typeset .admonition.note > .admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.note > summary {
+  background: linear-gradient(90deg, rgba(97, 175, 239, 0.22), rgba(97, 175, 239, 0.07));
+  color: #d8eeff;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .admonition.tip,
+[data-md-color-scheme="slate"] .md-typeset details.tip,
+[data-md-color-scheme="slate"] .md-typeset .admonition.hint,
+[data-md-color-scheme="slate"] .md-typeset details.hint {
+  border-left-color: #7ed7ba;
+  background: linear-gradient(135deg, rgba(15, 159, 121, 0.2), rgba(15, 159, 121, 0.06) 55%, var(--odp-bg-light));
+}
+[data-md-color-scheme="slate"] .md-typeset .admonition.tip > .admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.tip > summary {
+  background: linear-gradient(90deg, rgba(15, 159, 121, 0.22), rgba(15, 159, 121, 0.07));
+  color: #dffcf2;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .admonition.warning,
+[data-md-color-scheme="slate"] .md-typeset details.warning {
+  border-left-color: var(--odp-orange);
+  background: linear-gradient(135deg, rgba(209, 154, 102, 0.2), rgba(209, 154, 102, 0.06) 55%, var(--odp-bg-light));
+}
+[data-md-color-scheme="slate"] .md-typeset .admonition.warning > .admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.warning > summary {
+  background: linear-gradient(90deg, rgba(209, 154, 102, 0.22), rgba(209, 154, 102, 0.07));
+  color: #f6dfc8;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .admonition.danger,
+[data-md-color-scheme="slate"] .md-typeset details.danger,
+[data-md-color-scheme="slate"] .md-typeset .admonition.error,
+[data-md-color-scheme="slate"] .md-typeset details.error {
+  border-left-color: var(--odp-red);
+  background: linear-gradient(135deg, rgba(224, 108, 117, 0.2), rgba(224, 108, 117, 0.06) 55%, var(--odp-bg-light));
+}
+[data-md-color-scheme="slate"] .md-typeset .admonition.danger > .admonition-title,
+[data-md-color-scheme="slate"] .md-typeset details.danger > summary {
+  background: linear-gradient(90deg, rgba(224, 108, 117, 0.22), rgba(224, 108, 117, 0.07));
+  color: #ffd9dc;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .admonition.important,
+[data-md-color-scheme="slate"] .md-typeset details.important {
+  border-left-color: #e59af7;
+  background: linear-gradient(135deg, rgba(162, 28, 175, 0.22), rgba(162, 28, 175, 0.06) 55%, var(--odp-bg-light));
+}
+
+[data-md-color-scheme="slate"] .md-typeset .admonition.example,
+[data-md-color-scheme="slate"] .md-typeset details.example {
+  border-left-color: var(--odp-purple);
+  background: linear-gradient(135deg, rgba(198, 120, 221, 0.2), rgba(198, 120, 221, 0.06) 55%, var(--odp-bg-light));
+}
+
+/* ── 10 滚动条 ───────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #c6c6c6, #a8a8a8);
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--paper) 60%, transparent);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #ababab, #8a8a8a);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #a8a8a8 transparent;
+}
+
+[data-md-color-scheme="slate"] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--odp-blue), var(--odp-purple));
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+[data-md-color-scheme="slate"] ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--odp-cyan), var(--odp-blue));
+}
+
+[data-md-color-scheme="slate"] * {
+  scrollbar-color: var(--odp-blue) transparent;
+}
+
+/* ── 11 首页 Hero ────────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  margin: 0.4rem 0 2rem;
+  padding: 2.4rem 2rem;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--line-quiet);
+  background:
+    radial-gradient(120% 140% at 8% 0%, color-mix(in srgb, var(--accent-cool) 14%, transparent), transparent 60%),
+    radial-gradient(120% 140% at 100% 100%, color-mix(in srgb, var(--accent-warm) 14%, transparent), transparent 55%),
+    linear-gradient(135deg, var(--paper), var(--paper-alt));
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+[data-md-color-scheme="slate"] .hero {
+  background:
+    radial-gradient(120% 140% at 8% 0%, rgba(97, 175, 239, 0.16), transparent 60%),
+    radial-gradient(120% 140% at 100% 100%, rgba(209, 154, 102, 0.14), transparent 55%),
+    linear-gradient(135deg, var(--odp-bg-light), var(--odp-bg-highlight));
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.35);
+}
+
+.hero__eyebrow {
+  margin: 0 0 0.5rem !important;
+  font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--accent-cool);
+  font-weight: 600;
+}
+
+.hero__title {
+  margin: 0 0 0.55rem !important;
+  padding: 0 !important;
+  border: none !important;
+  font-size: 2.05rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em;
+  color: var(--ink-strong) !important;
+  line-height: 1.2;
+}
+
+.hero__subtitle {
+  margin: 0 0 1.4rem !important;
+  max-width: 34rem;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  line-height: 1.75;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.hero__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.48rem 1.15rem;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong) !important;
+  background: color-mix(in srgb, var(--paper) 70%, transparent);
+  color: var(--ink-strong) !important;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none !important;
+  transition: transform var(--transition), box-shadow var(--transition),
+    background var(--transition), border-color var(--transition);
+}
+
+.hero__btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-cool) !important;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent-cool) 22%, transparent);
+  color: var(--accent-cool) !important;
+}
+
+.hero__btn--primary {
+  background: linear-gradient(135deg, var(--accent-cool), #5b6ac4);
+  border-color: transparent !important;
+  color: #fff !important;
+}
+
+.hero__btn--primary:hover {
+  color: #fff !important;
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--accent-cool) 40%, transparent);
+}
+
+/* ── 12 博客列表 / 文章卡片 ──────────────────────────────────────── */
+/* 列表里每篇文章 = 一个独立成行的气泡，内部只有「标题 + 摘要」（外加一行
+   日期 / 分类的小字）。「继续阅读」链接与作者头像已在模板覆盖里删掉。
+   ★ 整张气泡可点击：标题链接被「拉伸」铺满整张卡片（见下面的 ::after），
+     所以点摘要、点留白、点边框内侧都会进文章，不用精准点标题。 */
+.md-post--excerpt {
+  position: relative;
+  margin: 0 0 1rem;
+  padding: 0.95rem 1.2rem 1.05rem;
+  border: 1px solid var(--line-quiet);
+  border-left: 3px solid color-mix(in srgb, var(--accent-cool) 45%, transparent);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+  cursor: pointer; /* 鼠标在气泡任意位置都是「可点击」手势 */
+  transition: transform var(--transition), border-color var(--transition),
+    box-shadow var(--transition), background var(--transition);
+}
+
+.md-post--excerpt:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent-cool) 38%, transparent);
+  border-left-color: var(--accent-cool);
+  background: var(--paper);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+}
+
+[data-md-color-scheme="slate"] .md-post--excerpt:hover {
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.34);
+}
+
+/* 键盘 Tab 到标题链接时，让整张卡片显示焦点框（鼠标点击不触发） */
+.md-post--excerpt:focus-within {
+  border-color: var(--accent-cool);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-cool) 45%, transparent);
+}
+
+/* 拉伸链接本体：铺满整张气泡。定位基准是上面的 position:relative 卡片。 */
+.md-post--excerpt .md-post__content > h2 a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: var(--radius-card);
+}
+
+.md-post--excerpt .md-post__meta {
+  color: var(--ink-faint);
+  font-size: 0.7rem;
+}
+
+/* 分类小链接抬到覆盖层之上，保持它自己还能点（点它去分类页） */
+.md-post--excerpt .md-post__meta a {
+  position: relative;
+  z-index: 1;
+  border-bottom: none;
+}
+
+/* 卡片里的标题（文章自身的 H1 在列表里渲染成 h2） */
+.md-post--excerpt .md-post__content > h2 {
+  margin: 0.15rem 0 0.35rem;
+  padding: 0;
+  border: none;
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+
+.md-post--excerpt .md-post__content > h2 a {
+  border-bottom: none;
+  color: var(--ink-strong);
+  transition: color var(--transition);
+}
+
+.md-post--excerpt .md-post__content > h2 a:hover {
+  color: var(--accent-cool);
+}
+
+/* 卡片里的摘要 */
+.md-post--excerpt .md-post__content > p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.8;
+}
+
+.md-post--excerpt .md-post__content h3 {
+  margin: 0.6rem 0 0.2rem;
+  padding-left: 0;
+  border-left: none;
+  font-size: 0.86rem;
+}
+
+/* 分类 / 标签小胶囊 */
+.md-typeset .md-tag,
+.md-typeset .md-post__meta .md-tag {
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-cool) 30%, transparent);
+  background: color-mix(in srgb, var(--accent-cool) 9%, transparent);
+  color: var(--accent-cool);
+  font-size: 0.68rem;
+  padding: 0.16rem 0.6rem;
+  font-weight: 600;
+  border-bottom-width: 1px;
+  transition: background var(--transition), color var(--transition);
+}
+
+.md-typeset .md-tag:hover {
+  background: var(--accent-cool);
+  color: #fff;
+}
+
+/* 作者头像 */
+.md-typeset .md-author {
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--accent-cool) 35%, transparent);
+}
+
+/* 文章页侧栏的「回到主页」按钮：Material 默认在窄屏直接隐藏它，
+   这里让它始终显示，并且做成一眼能认出的胶囊按钮。 */
+.md-post__back {
+  display: block !important;
+  margin: 0 0.6rem 1.2rem;
+  padding: 0;
+  border-bottom: none;
+}
+
+.md-post__back .md-nav__title {
+  height: auto !important;
+  min-height: 0;
+  padding: 0 !important;
+  background: none !important;
+  border-bottom: none;
+  box-shadow: none !important;
+  cursor: default;
+  white-space: normal;
+}
+
+.md-post__back .md-nav__container > .md-nav__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-cool) 40%, transparent);
+  background: color-mix(in srgb, var(--accent-cool) 10%, transparent);
+  color: var(--accent-cool) !important;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.7;
+  transition: background var(--transition), color var(--transition);
+}
+
+.md-post__back .md-nav__container > .md-nav__link:hover {
+  background: var(--accent-cool);
+  color: #fff !important;
+}
+
+.md-post__back .md-nav__container > .md-nav__link svg {
+  height: 0.9rem;
+  width: 0.9rem;
+  fill: currentcolor;
+}
+
+/* 上一篇 / 下一篇 */
+.md-nav--footer .md-nav__link {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-quiet);
+  background: color-mix(in srgb, var(--paper) 60%, transparent);
+  transition: transform var(--transition), border-color var(--transition),
+    background var(--transition);
+}
+
+.md-nav--footer .md-nav__link:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent-cool) 45%, transparent);
+  background: var(--paper);
+}
+
+/* ── 13 阅读指标与评论区 ─────────────────────────────────────────── */
+/* 页脚：mkdocs.yml 里已经删掉 copyright，Material 仍会渲染一个空壳 div，
+   留着会把社交图标挤到第二行，这里让它不占位置。 */
+.md-footer-meta .md-copyright:not(:has(.md-copyright__highlight)) {
+  display: none;
+}
+
+.reading-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  margin: 0 0 1.4rem !important;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line-quiet);
+  border-left: 4px solid var(--accent-cool);
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--paper) 92%, transparent), var(--paper-alt));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+}
+
+.reading-metrics__item {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.14rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+[data-md-color-scheme="slate"] .reading-metrics {
+  box-shadow: none;
+  background: linear-gradient(135deg, var(--odp-bg-light), var(--odp-bg-highlight));
+}
+
+.comments-title {
+  margin-top: 2.6rem !important;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line-quiet);
+}
+
+.giscus {
+  margin-top: 1.1rem;
+}
+
+.giscus-frame {
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-md);
+}
+
+/* ── 14 响应式与打印 ─────────────────────────────────────────────── */
+@media screen and (max-width: 76.1875em) {
+  .md-content {
+    margin: 0.4rem 0 1rem;
+    padding: 1rem 1.1rem 1.6rem;
+    border-radius: var(--radius-md);
+  }
+
+  .md-grid {
+    max-width: 100%;
+  }
+}
+
+@media screen and (max-width: 44.9375em) {
+  .hero {
+    padding: 1.6rem 1.15rem;
+  }
+
+  .hero__title {
+    font-size: 1.8rem !important;
+  }
+
+  /* 手机端正文：略微放大字号、放松行距（15.2px → 16.4px） */
+  .md-typeset {
+    font-size: 0.82rem;
+    line-height: 1.8;
+  }
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .md-content {
+    box-shadow: none;
+    border: none;
+    background: #fff;
+  }
+}
+
+/* 尊重「减少动态效果」系统偏好 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
