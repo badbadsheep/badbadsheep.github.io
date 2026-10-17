@@ -29,6 +29,7 @@
     "images": "node scripts/check-images.mjs",
     "images:unused": "node scripts/check-images.mjs --unused",
     "fonts": "node scripts/subset-fonts.mjs",
+    "push": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/push.ps1",
     "verify": "node scripts/subset-fonts.mjs && node scripts/check-images.mjs && astro check && astro build && node scripts/check-links.mjs"
   },
   "dependencies": {

@@ -242,18 +242,82 @@ pnpm images    # 只查图片引用（不用 build，秒出）
 
 ---
 
-## 十、部署
+## 十、推到 GitHub 与部署
 
-`.github/workflows/deploy.yml` 已经写好了，但**触发条件故意只有手动**（`workflow_dispatch`），
-免得你还没准备好就被推上线。要上线时：
+### 10.1 第一次推送（只做一次）
 
-1. 仓库 Settings → Pages → Source 选 **GitHub Actions**
-2. 把 `deploy.yml` 里的 `on:` 改成 `push: branches: [main]`
-3. 第一次手动跑一次看看
+1. 在 GitHub 建一个**空**仓库，名字必须是 **`badbadsheep.github.io`**。
+   `astro.config.mjs` 里的 `site` 就是这个地址；名字不同的话 Pages 会挂在 `/仓库名/` 子路径下，全站路径都得改。
+   建的时候**不要**勾 README / .gitignore / LICENSE，否则首推要先处理分叉。
+2. **双击根目录的 `push.cmd`**。第一次它会问远程地址，直接回车用默认的
+   `https://github.com/badbadsheep/badbadsheep.github.io.git`。
+   蹦出来的浏览器窗口是 GitHub 登录（Git for Windows 自带的凭据管理器），登一次以后不再问。
 
-流水线顺序是：装依赖 → 字体子集 → 类型检查 → 构建 → **死链检查**（这一步挂了就不部署）。
+手动做，等价于：
+
+```powershell
+git remote add origin https://github.com/badbadsheep/badbadsheep.github.io.git
+git push -u origin main
+```
+
+### 10.2 以后每次发布：双击 `push.cmd`
+
+```powershell
+.\push.cmd                     # 自检 → 提交 → 推送
+.\push.cmd "内容：新增一篇"     # 自定义提交信息
+.\push.cmd -SkipVerify         # 只改了错别字时，跳过自检
+pnpm push                      # 和双击等价
+```
+
+它按顺序做四件事，任何一步失败就停下、**不提交也不推送**：
+
+| 步 | 做什么 | 失败时 |
+|---|---|---|
+| 1 | 查 git / 仓库 / 分支 / 提交身份 / 远程地址，能补的就地补上 | 告诉你缺哪一项 |
+| 2 | `pnpm verify`（字体 → 图片 → 类型 → 构建 → 死链） | 打印失败那一步，直接停 |
+| 3 | 把改动提交成一个 commit，信息默认 `更新：2026-10-17 22:10` | — |
+| 4 | `git push`；远程有别人的提交就自动 `pull --rebase` 再试一次 | 打印 git 原文 + 排查建议 |
+
+`push.cmd` 只是个 ASCII 的壳子 —— **中文不要写进 `.cmd`**：cmd.exe 用控制台代码页解码批处理，
+代码页一变中文就散架。真逻辑在 `scripts/push.ps1`，那个文件**必须存成 UTF-8 with BOM**
+（和 `scripts/new.ps1` 同一个坑）。这台机器上只有 Windows PowerShell 5.1、没有 `pwsh`，
+所以脚本按 5.1 写，别改用只在 PowerShell 7 才有的语法。
+
+### 10.3 推送成功 ≠ 站点上线
+
+还差三个一次性设置：
+
+1. **Settings → Pages → Source** 选 **GitHub Actions**。
+   不设这一步，`Deploy` 会在 `configure-pages` 报 "Get Pages site failed"，站点不会出现。
+2. **评论区**：`.env` 只在本机，CI 上没有它。到 **Settings → Secrets and variables → Actions →
+   Variables** 建四个**仓库变量**（值照抄 `.env`）：
+   `PUBLIC_GISCUS_REPO`、`PUBLIC_GISCUS_REPO_ID`、`PUBLIC_GISCUS_CATEGORY`、`PUBLIC_GISCUS_CATEGORY_ID`。
+   `deploy.yml` 已经把它们透传给 `pnpm build`。不建也不会失败，只是线上评论区显示"还没接上"。
+   用 Variables 不用 Secrets：这四项本来就写在页面 HTML 里（`PUBLIC_` 前缀）。
+3. **Settings → Code security** 打开 **Dependabot**，`.github/dependabot.yml` 才生效。
+
+### 10.4 流水线
+
+`.github/workflows/deploy.yml`：**推 `main` 自动部署**，也可以在 Actions 页面手动 `Run workflow`。
+
+装依赖 → 字体子集 → 类型检查 → 构建 → **死链检查**（挂了就不部署）→ 上传 → 发布。
+
+> 想只手动发布，删掉 `on:` 下的 `push:` 两行就行 —— 但 **`on:` 这一行必须留着**。
+> 曾经被删成 `push: branches: [main]`，GitHub 直接报 `No event triggers defined in 'on'`，整个工作流不触发。
 
 `dist/` 是纯静态产物，放任何静态托管都能跑（Vercel / Cloudflare Pages / 自己的服务器）。
+
+### 10.5 推送报错对照
+
+| 报错 | 原因与处理 |
+|---|---|
+| `fatal: not a git repository` | 不在工程目录，或仓库没初始化。双击 `push.cmd` 会自动处理 |
+| `Authentication failed` / `403` | 凭据过期。控制面板 → 凭据管理器 → Windows 凭据 → 删掉 `git:https://github.com`，再推一次重新登录 |
+| `Updates were rejected because the remote contains work…` | 远程有别人的提交。脚本会自动 rebase 重试；还失败就手动解决冲突 |
+| `Multiple versions of pnpm specified` | `deploy.yml` 里又写了 `version:`。pnpm 版本只由 `package.json` 的 `packageManager` 决定 |
+| `Invalid workflow file … No event triggers defined in 'on'` | `on:` 被写坏了，见 10.4 |
+| `Deploy` 在 `configure-pages` 报错 | Pages 的 Source 还没设成 GitHub Actions，见 10.3 |
+
 
 ---
 
@@ -311,6 +375,8 @@ Windows PowerShell 会按 GBK 读，中文串会把引号截断、整个脚本�
 
 | 文件 | 管什么 |
 |---|---|
+| `push.cmd` | 一键发布：自检 → 提交 → 推送（见第十节 10.2） |
+| `scripts/push.ps1` | 上面那件事的真逻辑，UTF-8 with BOM |
 | `.gitattributes` | 换行符：仓库里存 LF；`*.cmd` 强制 CRLF、`*.ps1` 保持 LF + BOM |
 | `.editorconfig` | 编辑器约定（缩进 2 空格、UTF-8、Markdown 不删行尾空格） |
 | `CONTRIBUTING.md` | 提交前跑什么、几条硬规矩、哪些东西不许提交 |

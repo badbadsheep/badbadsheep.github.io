@@ -1,7 +1,13 @@
 name: Deploy
 
-# 先备着，不推。等你确认要上线时再把 push 触发打开。
-push: branches: [main]
+# 推 main 自动部署；也可以在 Actions 页面手动 Run workflow。
+# 想只保留手动发布，删掉 push: 那两行 —— 但 on: 这一行必须留着，
+# 之前被删成 `push: branches: [main]` 导致 GitHub 报
+# "No event triggers defined in 'on'"，整个工作流不生效。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,12 +21,20 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # giscus 的四个值是 PUBLIC_*（本来就会出现在页面 HTML 里），放仓库变量而不是 Secret。
+    # .env 只在本机存在、不进仓库，所以这里必须显式透传，否则线上评论区是空壳。
+    # 没建这些变量也不会失败，只是评论区显示"还没接上"的说明。
+    env:
+      PUBLIC_GISCUS_REPO: ${{ vars.PUBLIC_GISCUS_REPO }}
+      PUBLIC_GISCUS_REPO_ID: ${{ vars.PUBLIC_GISCUS_REPO_ID }}
+      PUBLIC_GISCUS_CATEGORY: ${{ vars.PUBLIC_GISCUS_CATEGORY }}
+      PUBLIC_GISCUS_CATEGORY_ID: ${{ vars.PUBLIC_GISCUS_CATEGORY_ID }}
     steps:
       - uses: actions/checkout@v4
 
+      # 不要在这里写 version —— package.json 的 packageManager 已经是唯一来源，
+      # 两处都写会让 action 直接报 "Multiple versions of pnpm specified"。
       - uses: pnpm/action-setup@v4
-        with:
-          version: 12
 
       - uses: actions/setup-node@v4
         with:
