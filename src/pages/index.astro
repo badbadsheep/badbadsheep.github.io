@@ -3,7 +3,9 @@
  * 首页：第一屏（动效留空）+ 四个栏目屏 + 页脚。
  * 第一屏的静态构图在 Hero.astro / facade.css 里；动效接入点见 scripts/art/index.ts。
  *
- * 四屏底纹是同一张静态方形网格，纯 CSS，没有 JS（见 facade.css 的 .screen）。
+ * 四屏底纹是同一张静态方形网格，纯 CSS，没有 JS。
+ * 网格画在包住四屏的 .screens 容器上（见 facade.css），不是画在每个 .screen 上 ——
+ * 否则每屏高度不同，网格相位每到一屏就重来，四屏之间会错位。
  */
 import Facade from '../layouts/Facade.astro';
 import Hero from '../components/facade/Hero.astro';
@@ -20,9 +22,11 @@ const postsOf = (key: string) => posts.filter((p) => p.section.key === key);
 <Facade home>
   <Hero />
 
-  {
-    SECTIONS.map((section) => (
-      <SectionScreen section={section} posts={postsOf(section.key)} works={works} limit={6} />
-    ))
-  }
+  <div class="screens">
+    {
+      SECTIONS.map((section) => (
+        <SectionScreen section={section} posts={postsOf(section.key)} works={works} limit={6} />
+      ))
+    }
+  </div>
 </Facade>

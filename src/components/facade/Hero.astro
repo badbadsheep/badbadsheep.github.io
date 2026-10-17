@@ -40,11 +40,56 @@ const [first, ...rest] = ['badbad', 'sheep'];
       {rest.map((line) => <span>{line}</span>)}
     </h1>
     <p class="hero__tag">{SITE.tagline}</p>
-    <p class="hero__cue"><span>向下</span><span aria-hidden="true">↓</span></p>
   </div>
 
   <script>
     import { mountHero } from '../../scripts/art';
     mountHero();
+
+    /**
+     * 指针靠近时，几何构图轻轻向外推开 —— 最大 5px。
+     * 每个图形按"离指针越近推得越多"往反方向让开；点阵整体往反方向偏一点，
+     * 形成轻微的视差。位移写在 translate 上，和原有定位互不干扰。
+     */
+    const geo = document.querySelector<HTMLElement>('.hero__geo');
+
+    if (geo && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const parts = [...geo.querySelectorAll<HTMLElement>(':scope > span')];
+      let base: { cx: number; cy: number }[] = [];
+      let queued = 0;
+
+      const measure = () => {
+        parts.forEach((el) => (el.style.translate = ''));
+        base = parts.map((el) => {
+          const r = el.getBoundingClientRect();
+          return { cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+        });
+      };
+
+      const onMove = (e: PointerEvent) => {
+        if (queued) return;
+        queued = requestAnimationFrame(() => {
+          queued = 0;
+          parts.forEach((el, i) => {
+            const dx = base[i].cx - e.clientX;
+            const dy = base[i].cy - e.clientY;
+            const d = Math.hypot(dx, dy) || 1;
+            const k = Math.max(0, 1 - d / 900) * 5; // 最远 5px
+            el.style.translate = `${((dx / d) * k).toFixed(2)}px ${((dy / d) * k).toFixed(2)}px`;
+          });
+          geo.style.setProperty('--grid-x', `${((e.clientX / innerWidth - 0.5) * -10).toFixed(2)}px`);
+          geo.style.setProperty('--grid-y', `${((e.clientY / innerHeight - 0.5) * -10).toFixed(2)}px`);
+        });
+      };
+
+      measure();
+      window.addEventListener('resize', measure, { passive: true });
+      document.querySelector('.hero')?.addEventListener('pointermove', onMove as EventListener);
+      document.querySelector('.hero')?.addEventListener('pointerleave', () => {
+        parts.forEach((el) => (el.style.translate = ''));
+        geo.style.setProperty('--grid-x', '0px');
+        geo.style.setProperty('--grid-y', '0px');
+      });
+    }
   </script>
 </section>

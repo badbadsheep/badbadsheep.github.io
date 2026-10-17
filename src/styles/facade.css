@@ -145,6 +145,8 @@ html.is-home {
   position: relative;
   z-index: var(--z-content);
   padding-block: var(--s-9) var(--s-7);
+  /* 往画面中间挪一点，别死贴左边 */
+  padding-left: clamp(var(--s-4), 4vw, 5rem);
 }
 
 .hero__inner::after {
@@ -185,38 +187,17 @@ html.is-home {
   color: var(--fg-3);
 }
 
-.hero__cue {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s-2);
-  margin-top: var(--s-7);
-  font-family: var(--f-mono);
-  font-size: var(--t-xs);
-  letter-spacing: 0.16em;
-  color: var(--fg-3);
+/* ── 指针靠近时，几何构图轻轻向外推开（最大 5px） ─────────────────────────
+   用独立的 translate 属性而不是 transform，这样不会和已有的定位互相覆盖；
+   位移量由 Hero.astro 里的脚本按「离指针越近推得越多」算出来。 */
+.hero__geo > span {
+  transition: translate 240ms var(--ease-out);
+  will-change: translate;
 }
 
-.hero__cue span:last-child {
-  display: inline-block;
-  animation: cue-fall 2.6s var(--ease-in-out) infinite;
-}
-
-@keyframes cue-fall {
-  0%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.5;
-  }
-  50% {
-    transform: translateY(4px);
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero__cue span:last-child {
-    animation: none;
-  }
+.hero__geo::before {
+  translate: var(--grid-x, 0px) var(--grid-y, 0px);
+  transition: translate 240ms var(--ease-out);
 }
 
 /* ── 栏目屏 ────────────────────────────────────────────────────────────── */
@@ -228,12 +209,15 @@ html.is-home {
   justify-content: center;
   padding-block: var(--s-9);
   border-top: var(--hairline) solid var(--line);
+}
 
-  /* 底纹：静态方形网格，纯 CSS 背景，不发 JS、不呼吸、不跟随指针。
-     为什么是 SVG 而不是 linear-gradient：0.3px 的渐变色标在 1x 屏上会被抹成 0
-     （实测整行像素纯黑），SVG 描边才会老老实实做亚像素抗锯齿。
-     网格是这一屏的背景，文字与气泡天然压在它上面；气泡与 See More 另有不透明底，
-     网格不会从卡片内部透出来。格子从左上角起算，不追求与屏幕左右边缘对齐。 */
+/* 四屏共用的方形网格底纹 —— 纯 CSS，不发 JS、不呼吸、不跟随指针。
+   为什么是 SVG 而不是 linear-gradient：0.3px 的渐变色标在 1x 屏上会被抹成 0
+   （实测整行像素纯黑），SVG 描边才会老老实实做亚像素抗锯齿。
+   为什么画在这层包住四屏的容器上：画在每个 .screen 上时，各屏高度不同，
+   网格相位每到一屏就重来，四屏之间会错位。这里只有一个背景原点，从头贯到尾。
+   格子从容器左上角起算，不追求与屏幕左右边缘对齐。 */
+.screens {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Cpath d='M0 0H56M0 0V56' fill='none' stroke='%23fff' stroke-width='0.1'/%3E%3C/svg%3E");
   background-size: var(--grid-cell) var(--grid-cell);
 }
