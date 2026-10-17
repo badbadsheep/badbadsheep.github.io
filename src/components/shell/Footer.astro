@@ -1,6 +1,9 @@
 ---
 /**
- * 页脚。两个版本内容一致，只是门面版排得松一点。
+ * 页脚。两个版本内容**不一样**：
+ *   · 门面版（首页）：只留版权、邮箱、GitHub、tagline。
+ *     关于 / 归档 / RSS / 致谢 从首页撤掉了 —— 它们仍在抽屉里，也仍在文章页脚。
+ *   · 阅读版（文章页）：保持完整的一套。
  *
  * 邮箱一律是「只展示」的纯文本，不做 mailto：它是个联系方式，不是按钮。
  * 想复制就手动选中复制。
@@ -27,10 +30,6 @@ const year = new Date().getFullYear();
           <a href={`https://github.com/${SITE.github}`} rel="me noopener" target="_blank">
             GitHub
           </a>
-          <a href="/about/">关于</a>
-          <a href="/archive/">归档</a>
-          <a href="/feed_rss_created.xml">RSS</a>
-          <a href="/credits/">致谢</a>
           <span class="foot-facade__tag">{SITE.tagline}</span>
         </div>
       </div>

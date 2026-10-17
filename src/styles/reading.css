@@ -134,22 +134,24 @@
   min-width: 0;
 }
 
-/* 更宽的阅读版面（文章页 / 作品页）。
-   默认只留普通边距；**只有当页面上真的有目录面板时**才让出右边，
-   否则没有标题的文章会莫名其妙空出一大块。 */
-.page--wide {
+/* ★ 选择器必须写成 .wrap.page--wide（两级），不能只写 .page--wide。
+   .wrap 自带 `width: min(100% - 2*s5, 68rem)` 和 `margin-inline: auto`，
+   而它和 .page--wide 是同级选择器 —— 谁后写谁赢，结果是这里所有
+   width / margin 全被 .wrap 盖掉，版面永远是固定的 1088px 居中：
+   目录一拖宽，它就被推到贴着屏幕左边（左边距变 0），文字钻到面板底下。
+   提高一级特异度才盖得住。 */
+.wrap.page--wide {
   width: auto;
   max-width: 84rem;
-  margin-left: clamp(var(--s-5), 8vw, 10rem);
+  margin-left: clamp(var(--s-5), 6vw, 8rem);
   margin-right: var(--s-5);
 }
 
 /* 只在目录真正显示的大屏上让出右边宽。这条选择器权重比下面媒体查询里的
-   .page--wide 高，如果不加宽度门槛，手机上目录虽然隐藏了，正文却还在让
-   出 16rem 的右边 —— 剩下的宽度全被挤到左边，看起来就像"贴着屏幕左边缘"。
-   那正是之前手机端正文贴左的原因。 */
+   规则高，如果不加宽度门槛，手机上目录虽然隐藏了，正文却还在让出
+   --toc-w 的右边 —— 剩下的宽度全被挤到左边，看起来就像"贴着屏幕左边缘"。 */
 @media (min-width: 62rem) {
-  body:has(.toc-panel) .page--wide {
+  body:has(.toc-panel) .wrap.page--wide {
     margin-right: calc(var(--toc-w) + var(--s-6));
   }
 }
@@ -1030,8 +1032,8 @@
     display: none;
   }
 
-  /* 目录没了，正文把右侧的留白还回去 */
-  .page--wide {
+  /* 目录没了，正文把右侧的留白还回去（同样要两级选择器才盖得住 .wrap） */
+  .wrap.page--wide {
     width: min(100% - 2 * var(--s-5), 84rem);
     margin-inline: auto;
   }
