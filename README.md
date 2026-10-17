@@ -107,6 +107,54 @@ summary: 一句话摘要，会出现在列表与气泡里。
 
 图标、头像、字体这类"要一个稳定网址"的东西放 `public/`。
 
+### 缩放与并排
+
+用一个 `div` 把图片包起来就行，**图片本身还是走优化管线**（webp + srcset），
+缩放靠外层容器，`height: auto` 保证永远等比。
+
+**并排两张（各占一半）** —— 两张图之间**必须空一行**，否则 Markdown 会把它们塞进同一个段落：
+
+```markdown
+<div class="figures">
+
+![](../../assets/images/a.png)
+
+![](../../assets/images/b.png)
+
+</div>
+```
+
+**并排 + 整体再缩到 66%**：
+
+```markdown
+<div class="figures w-66">
+
+![](../../assets/images/a.png)
+
+![](../../assets/images/b.png)
+
+</div>
+```
+
+**单张缩放**（等比，居中）：
+
+```markdown
+<div class="w-60">
+
+![](../../assets/images/xxx.png) （ctrl alt v）
+
+</div>
+```
+
+可用的宽度：`w-25` `w-33` `w-40` `w-50` `w-60` `w-66` `w-75` `w-90`。
+
+手机屏（< 768px）下并排会自动变成上下堆叠，宽度类在 60% 以上的一律恢复 100%，
+免得小屏上挤成两条缝。
+
+> 为什么不用 MkDocs 那种 `![x](y){width=90%}` 后缀：那要写一个 Markdown 插件去改图片节点，
+> 而图片节点之后会被 Astro 的图片管线重写，插件加的属性有被覆盖的风险。
+> 换成外层 `div`，一行都不用改构建配置，效果一样。
+
 ---
 
 ## 四、标签与主题页

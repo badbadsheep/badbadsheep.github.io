@@ -477,6 +477,102 @@ body:has(.toc-panel) .page--wide {
   cursor: zoom-in;
 }
 
+/* ── 图片缩放 / 并排 ────────────────────────────────────────────────────
+   用法（写在 .md 里，包裹元素之间的空行不能省，否则 Markdown 不会解析）：
+
+     <div class="w-75">            ← 单张缩到 75%，等比，居中
+     ![](../../assets/images/x.png)
+     </div>
+
+     <div class="figures">         ← 两张并排，各占一半，等比
+     ![](../../assets/images/a.png)
+
+     ![](../../assets/images/b.png)
+     </div>
+
+     <div class="figures w-66">    ← 并排 + 整体再缩到 66%
+     ...
+     </div>
+
+   为什么不用 {width=90%} 那种后缀：那需要写 Markdown 插件改图片节点，
+   而图片节点随后会被 Astro 的图片管线重写，插件加的属性可能被覆盖。
+   把宽度放在外面这层 div 上，图片本身仍然走优化管线（webp + srcset），稳。
+   图片自带 height:auto，所以宽度一变就是等比缩放。 */
+
+.prose .figures {
+  display: flex;
+  gap: var(--s-4);
+  align-items: flex-start;
+  margin-block: 1.8em;
+}
+
+/* Markdown 会把单独一行的图片包成 <p>，所以 flex 项其实是这个 p */
+.prose .figures > * {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+}
+
+.prose .figures img {
+  width: 100%;
+  margin-block: 0;
+}
+
+.prose .w-90,
+.prose .w-75,
+.prose .w-66,
+.prose .w-60,
+.prose .w-50,
+.prose .w-40,
+.prose .w-33,
+.prose .w-25 {
+  margin-inline: auto;
+}
+
+.prose .w-90 {
+  width: 90%;
+}
+.prose .w-75 {
+  width: 75%;
+}
+.prose .w-66 {
+  width: 66%;
+}
+.prose .w-60 {
+  width: 60%;
+}
+.prose .w-50 {
+  width: 50%;
+}
+.prose .w-40 {
+  width: 40%;
+}
+.prose .w-33 {
+  width: 33%;
+}
+.prose .w-25 {
+  width: 25%;
+}
+
+/* 小屏别搞并排：挤成两条缝没法看 */
+@media (max-width: 47.9rem) {
+  .prose .figures {
+    display: block;
+  }
+
+  .prose .figures > * + * {
+    margin-top: 1.4em;
+  }
+
+  .prose .w-90,
+  .prose .w-75,
+  .prose .w-66,
+  .prose .w-60,
+  .prose .w-50 {
+    width: 100%;
+  }
+}
+
 /* 行内代码 */
 .prose :not(pre) > code {
   padding: 0.1em 0.35em;
