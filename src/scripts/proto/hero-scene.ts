@@ -33,7 +33,6 @@ const T = {
 };
 
 const WORD = 'badbadsheep';
-const TAGLINE = 'Welcome to my world ^^';
 
 interface TrailParticle {
   x: number;
@@ -507,16 +506,8 @@ export function mount(root: HTMLElement, opts: { forcePlay?: boolean } = {}): vo
     };
   }
 
-  interface BrushState {
-    letterIdx: number;
-    progress: number;
-    brushX: number;
-    brushY: number;
-  }
-
   let writing = false;
   let writeElapsed = 0;
-  let lastBrush: BrushState | null = null;
   let writeDone = false;
   let inverted = false;
 
@@ -587,7 +578,6 @@ export function mount(root: HTMLElement, opts: { forcePlay?: boolean } = {}): vo
     const target = penPoint(letterIdx, letterT);
     const g = toGlyph(letterIdx, target.x, target.y);
     stampMask(mctx, g.x, g.y, dry);
-    lastBrush = { letterIdx, progress: letterT, brushX: g.x, brushY: g.y };
 
     if (done && !writeDone) {
       writeDone = true;

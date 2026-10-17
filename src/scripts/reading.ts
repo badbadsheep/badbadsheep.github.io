@@ -6,6 +6,20 @@
 /* ── 代码块：包一条顶栏（语言 + 复制） ─────────────────────────────────── */
 
 /**
+ * execCommand('copy') 被标准标成了废弃，ts 会给一条 ts(6387)。
+ * 但它仍然是「窗口没有焦点时」唯一能写进剪贴板的路（navigator.clipboard 那时会抛），
+ * 所以这条降级必须留着 —— 这里自己声明一个签名，只是让类型检查别再报废弃，
+ * 运行时的调用和原来一模一样。
+ */
+interface LegacyDocument {
+  execCommand(commandId: string): boolean;
+}
+
+function legacyCopy(): boolean {
+  return (document as unknown as LegacyDocument).execCommand('copy');
+}
+
+/**
  * 复制到剪贴板，三级降级：
  *   1. navigator.clipboard（要安全上下文 + 文档有焦点）
  *   2. execCommand('copy')（老浏览器、或者窗口没焦点时唯一能用的路）
@@ -27,7 +41,7 @@ async function copyText(text: string): Promise<boolean> {
     ta.style.opacity = '0';
     document.body.append(ta);
     ta.select();
-    const done = document.execCommand('copy');
+    const done = legacyCopy();
     ta.remove();
     return done;
   } catch {
