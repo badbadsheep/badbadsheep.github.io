@@ -11,10 +11,22 @@
  *
  * 真正的注入在 scripts/reading.ts：只有滚到评论区附近才加载 iframe。
  */
-const repo = import.meta.env.PUBLIC_GISCUS_REPO ?? '';
-const repoId = import.meta.env.PUBLIC_GISCUS_REPO_ID ?? '';
-const category = import.meta.env.PUBLIC_GISCUS_CATEGORY ?? 'Announcements';
-const categoryId = import.meta.env.PUBLIC_GISCUS_CATEGORY_ID ?? '';
+/**
+ * 兜底值：线上实际在用的那四个公开 ID（本来就是公开参数，会原样出现在 HTML 里）。
+ * 为什么要有兜底：.env 不进仓库，CI 里只能读仓库变量；变量没建的话线上就退回
+ * "还没接上"的说明 —— 之前评论一直空着就是这条原因。env 仍然优先，换仓库不用改代码。
+ */
+const DEFAULTS = {
+  repo: 'badbadsheep/badbadsheep.github.io',
+  repoId: 'R_kgDOVDP-nA',
+  category: 'Announcements',
+  categoryId: 'DIC_kwDOVDP-nM4DID_p',
+};
+
+const repo = import.meta.env.PUBLIC_GISCUS_REPO || DEFAULTS.repo;
+const repoId = import.meta.env.PUBLIC_GISCUS_REPO_ID || DEFAULTS.repoId;
+const category = import.meta.env.PUBLIC_GISCUS_CATEGORY || DEFAULTS.category;
+const categoryId = import.meta.env.PUBLIC_GISCUS_CATEGORY_ID || DEFAULTS.categoryId;
 const configured = Boolean(repo && repoId && categoryId);
 ---
 

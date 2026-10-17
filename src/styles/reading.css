@@ -144,8 +144,14 @@
   margin-right: var(--s-5);
 }
 
-body:has(.toc-panel) .page--wide {
-  margin-right: calc(var(--toc-w) + var(--s-6));
+/* 只在目录真正显示的大屏上让出右边宽。这条选择器权重比下面媒体查询里的
+   .page--wide 高，如果不加宽度门槛，手机上目录虽然隐藏了，正文却还在让
+   出 16rem 的右边 —— 剩下的宽度全被挤到左边，看起来就像"贴着屏幕左边缘"。
+   那正是之前手机端正文贴左的原因。 */
+@media (min-width: 62rem) {
+  body:has(.toc-panel) .page--wide {
+    margin-right: calc(var(--toc-w) + var(--s-6));
+  }
 }
 
 .article__head {
