@@ -39,8 +39,10 @@ const TUNE = {
   push: 34,
   /** 涟漪最大扩散半径 */
   rippleRadius: 300,
-  /** 涟漪峰值外推 */
-  ripplePush: 40,
+  /** 涟漪峰值外推：比指针膨胀轻，否则相邻白线会被挤成一团 */
+  ripplePush: 28,
+  /** 涟漪波前厚度 */
+  rippleBand: 130,
   /** 涟漪寿命 */
   rippleMs: 720,
   /** 呼吸位移上限 */
@@ -185,10 +187,14 @@ class Grid {
   private ox = 0;
   private oy = 0;
 
-  constructor(canvas: HTMLCanvasElement, pattern: Pattern, scheme: Scheme) {
+  /** 静态档（reduced-motion / 省流量）：只画一帧，永不进循环 */
+  private readonly still: boolean;
+
+  constructor(canvas: HTMLCanvasElement, pattern: Pattern, scheme: Scheme, still = false) {
     this.canvas = canvas;
     this.pattern = pattern;
     this.scheme = scheme;
+    this.still = still;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('canvas 2d 不可用');
     this.ctx = ctx;
@@ -219,7 +225,9 @@ class Grid {
     this.canvas.height = Math.round(h * dpr);
     this.lattice = build(this.pattern, w, h, this.seed);
     this.paintStatic();
-    this.needsClean = true;
+    // 静态档没有循环来收尾，静帧得当场贴上去
+    if (this.still) this.blit();
+    else this.needsClean = true;
     return true;
   }
 
@@ -379,7 +387,7 @@ class Grid {
         const dx = x - r.x;
         const dy = y - r.y;
         const d = Math.sqrt(dx * dx + dy * dy) || 0.0001;
-        const u = (d - r.rad) / 95;
+        const u = (d - r.rad) / TUNE.rippleBand;
         const g = Math.exp(-u * u) * r.str;
         ox += (dx / d) * g;
         oy += (dy / d) * g;
@@ -513,11 +521,11 @@ class Grid {
           this.ox = x;
           this.oy = y;
         }
-        // 4px 小十字：两条短线
-        nodes.moveTo(this.ox - 2, this.oy);
-        nodes.lineTo(this.ox + 2, this.oy);
-        nodes.moveTo(this.ox, this.oy - 2);
-        nodes.lineTo(this.ox, this.oy + 2);
+        // 6px 小十字：两条短线，压在格点上
+        nodes.moveTo(this.ox - 3, this.oy);
+        nodes.lineTo(this.ox + 3, this.oy);
+        nodes.moveTo(this.ox, this.oy - 3);
+        nodes.lineTo(this.ox, this.oy + 3);
       }
       if (any) {
         c.strokeStyle = `rgba(${p.r},${p.g},${p.b},${p.alphaNode})`;
@@ -570,7 +578,7 @@ export function mountScreens(): void {
   for (const canvas of canvases) {
     const pattern = (canvas.dataset.pattern as Pattern | undefined) ?? 'square';
     try {
-      grids.push(new Grid(canvas, pattern, scheme));
+      grids.push(new Grid(canvas, pattern, scheme, still));
     } catch {
       /* 拿不到 2d 上下文：这一屏当没有网格，页面照旧 */
     }
@@ -589,8 +597,6 @@ export function mountScreens(): void {
     resizeTimer = window.setTimeout(() => grids.forEach((g) => g.measure()), 160);
   });
 
-  if (still) return; // 静态档：一帧画完就结束，不再请求 RAF
-
   let raf = 0;
   let running = false;
 
@@ -599,7 +605,7 @@ export function mountScreens(): void {
     raf = window.requestAnimationFrame(frame);
   };
   const start = (): void => {
-    if (running) return;
+    if (still || running) return;
     running = true;
     raf = window.requestAnimationFrame(frame);
   };
@@ -609,6 +615,7 @@ export function mountScreens(): void {
     raf = 0;
   };
 
+  /* 观察器两档都要：静态档也要「滚到才建几何」，否则下面三屏永远是空的 */
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(
       (entries) => {
@@ -619,6 +626,7 @@ export function mountScreens(): void {
           // 滚到才量：竖屏切横屏这种尺寸变化不会经过 resize
           if (g.visible) g.measure();
         }
+        if (still) return;
         if (grids.some((g) => g.visible || g.probe)) start();
         else stop();
       },

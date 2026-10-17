@@ -1,8 +1,7 @@
 name: Deploy
 
 # 先备着，不推。等你确认要上线时再把 push 触发打开。
-on:
-  workflow_dispatch:
+push: branches: [main]
 
 permissions:
   contents: read
