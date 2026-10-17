@@ -57,7 +57,7 @@ jobs:
       - name: 死链检查
         run: pnpm links
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v3
         with:
