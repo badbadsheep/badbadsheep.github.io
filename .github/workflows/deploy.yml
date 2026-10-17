@@ -30,7 +30,7 @@ jobs:
       PUBLIC_GISCUS_CATEGORY: ${{ vars.PUBLIC_GISCUS_CATEGORY }}
       PUBLIC_GISCUS_CATEGORY_ID: ${{ vars.PUBLIC_GISCUS_CATEGORY_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # 不要在这里写 version —— package.json 的 packageManager 已经是唯一来源，
       # 两处都写会让 action 直接报 "Multiple versions of pnpm specified"。
