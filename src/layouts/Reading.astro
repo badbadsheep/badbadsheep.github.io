@@ -1,0 +1,30 @@
+---
+/** 阅读布局：文章 / 作品详情 / 关于 / 致谢 / 列表 / 归档 / 404。 */
+import Base from './Base.astro';
+import '../styles/reading.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** 文章页：分享卡片类型与元信息 */
+  type?: 'website' | 'article';
+  published?: string;
+  tags?: string[];
+  /**
+   * 更宽的版面。文章页用它 —— 正文才有力气靠左，
+   * 右侧才有地方钉住那份垂直居中的目录。
+   */
+  wide?: boolean;
+}
+
+const { title, description, type, published, tags, wide = false } = Astro.props;
+---
+
+<Base title={title} description={description} variant="reading" type={type} published={published} tags={tags}>
+  <div class:list={['wrap', 'page', { 'page--wide': wide }]}>
+    <slot />
+  </div>
+  <script>
+    import '../scripts/reading';
+  </script>
+</Base>

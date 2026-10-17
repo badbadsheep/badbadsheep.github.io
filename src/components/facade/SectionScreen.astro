@@ -1,0 +1,81 @@
+---
+/**
+ * 首页的一个栏目屏：栏目名 + 说明 + 5–6 个气泡 + 右下角 See More。
+ * 空栏目只写一句话，别的东西一概不加。
+ *
+ * 最底层还铺一张网格（scripts/grid）：形状由 pattern 传进来，
+ * 组件自己不认栏目名 —— 「第几屏用什么形状」是 index.astro 的事。
+ */
+import type { Post, Work } from '../../lib/content';
+import type { Section } from '../../data/sections';
+import type { Pattern } from '../../scripts/grid/lattice';
+import Bubble from './Bubble.astro';
+import SeeMore from './SeeMore.astro';
+
+interface Props {
+  section: Section;
+  posts?: Post[];
+  works?: Work[];
+  /** 每屏放几条 */
+  limit?: number;
+  /** 这一屏底下的网格形状 */
+  pattern?: Pattern;
+}
+
+const { section, posts = [], works = [], limit = 6, pattern = 'square' } = Astro.props;
+const isCollection = section.kind === 'collection';
+const total = isCollection ? works.length : posts.length;
+const shown = isCollection ? works.slice(0, limit) : posts.slice(0, limit);
+---
+
+<section class="screen" id={`s-${section.segment}`} aria-labelledby={`h-${section.segment}`}>
+  {/* 网格层：装饰，不进无障碍树；指针事件穿透给上面的文字与气泡 */}
+  <div class="screen__grid" aria-hidden="true">
+    <canvas data-grid data-pattern={pattern}></canvas>
+  </div>
+
+  <div class="screen__inner">
+    <header class="screen__head">
+      <h2 class="screen__mark" id={`h-${section.segment}`}>{section.mark}</h2>
+      <span class="screen__idx">{section.index}</span>
+      <p class="screen__desc">{section.desc}</p>
+    </header>
+
+    {
+      shown.length === 0 ? (
+        <div class="void">
+          <p>未来，这里将繁花满地</p>
+        </div>
+      ) : (
+        <div class="bubbles bubbles--rows">
+          {isCollection
+            ? (shown as Work[]).map((w) => (
+                <Bubble
+                  href={w.url}
+                  layout="row"
+                  mark={w.categoryName}
+                  title={w.title}
+                  meta={String(w.year)}
+                />
+              ))
+            : (shown as Post[]).map((p) => (
+                <Bubble
+                  href={p.url}
+                  layout="row"
+                  mark={p.section.name}
+                  title={p.title}
+                  meta={p.dateISO}
+                />
+              ))}
+        </div>
+      )
+    }
+  </div>
+
+  {total > 0 && <SeeMore href={section.url} />}
+</section>
+
+<script>
+  import { mountScreens } from '../../scripts/grid';
+  mountScreens();
+</script>

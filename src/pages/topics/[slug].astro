@@ -1,0 +1,50 @@
+---
+/** 主题聚合页：只为 topics.ts 里登记过的标签生成。 */
+import Reading from '../../layouts/Reading.astro';
+import { topicList } from '../../data/topics';
+import { getPostsByTag } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const paths = [];
+  for (const { tag, topic } of topicList()) {
+    paths.push({ params: { slug: topic.slug }, props: { tag, topic } });
+  }
+  return paths;
+}
+
+const { tag, topic } = Astro.props;
+const posts = await getPostsByTag(tag);
+---
+
+<Reading title={topic.name} description={topic.desc ?? `主题：${topic.name}`}>
+  <header class="page-head">
+    <p class="page-head__kicker">主题 / {posts.length} 条</p>
+    <h1 class="page-head__title">{topic.name}</h1>
+    {topic.desc && <p class="page-head__desc">{topic.desc}</p>}
+  </header>
+
+  {
+    posts.length === 0 ? (
+      <div class="void">
+        <p>未来，这里将繁花满地</p>
+      </div>
+    ) : (
+      <ul class="rows">
+        {posts.map((p) => (
+          <li class="row">
+            <span class="row__date">{p.dateISO}</span>
+            <div>
+              <h2 class="row__title">
+                <a href={p.url}>{p.title}</a>
+              </h2>
+              {p.summary && <p class="row__sum">{p.summary}</p>}
+              <div class="row__meta">
+                <span>{p.section.name}</span>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</Reading>

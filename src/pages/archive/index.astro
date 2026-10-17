@@ -1,0 +1,51 @@
+---
+/** 归档：三个流水栏目合起来按年月排。 */
+import Reading from '../../layouts/Reading.astro';
+import { getPosts, groupByMonth } from '../../lib/content';
+
+const posts = await getPosts();
+const groups = groupByMonth(posts);
+const total = posts.length;
+---
+
+<Reading title="归档" description="全部内容，按年月排列。">
+  <header class="page-head">
+    <p class="page-head__kicker">{total} 条 / 全部栏目</p>
+    <h1 class="page-head__title">Archive.</h1>
+    <p class="page-head__desc">博客、笔记、故事，混在一起按时间排。影像是合集，不在这里。</p>
+  </header>
+
+  {
+    groups.length === 0 ? (
+      <div class="void">
+        <p>未来，这里将繁花满地</p>
+      </div>
+    ) : (
+      groups.map((group) => (
+        <section>
+          <p class="month">
+            {group.year} 年 {Number(group.month)} 月 <span class="month-num">/ {group.items.length}</span>
+          </p>
+          <ul class="rows">
+            {group.items.map((p) => (
+              <li class="row">
+                <span class="row__date">{p.dateISO}</span>
+                <div>
+                  <h2 class="row__title">
+                    <a href={p.url}>{p.title}</a>
+                  </h2>
+                  <div class="row__meta">
+                    <span>{p.section.name}</span>
+                    {p.tags.map((t) => (
+                      <span>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    )
+  }
+</Reading>

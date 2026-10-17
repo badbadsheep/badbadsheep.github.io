@@ -1,0 +1,61 @@
+---
+/**
+ * 影像墙：分类筛选 + 气泡网格。
+ * 筛选是渐进增强（scripts/filters.ts），没有 JS 时全部显示。
+ */
+import type { Work } from '../../lib/content';
+import { CATEGORIES } from '../../data/categories';
+import Bubble from '../facade/Bubble.astro';
+
+interface Props {
+  works: Work[];
+  counts: Record<string, number>;
+}
+
+const { works, counts } = Astro.props;
+const visible = CATEGORIES.filter((c) => (counts[c.key] ?? 0) > 0);
+---
+
+{
+  works.length === 0 ? (
+    <div class="void">
+      <p>未来，这里将繁花满地</p>
+    </div>
+  ) : (
+    <div data-filter-root>
+      <ul class="filter" aria-label="按分类筛选">
+        {visible.map((c) => (
+          <li>
+            <button type="button" data-filter-value={c.key} aria-pressed="false">
+              {c.name}
+              <span class="filter__count">{counts[c.key]}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div class="wall">
+        {works.map((w) => (
+          <div data-filter-item data-category={w.category}>
+            <Bubble
+              href={w.url}
+              mark={`${w.categoryName} / ${w.year}`}
+              title={w.title}
+              summary={w.summary}
+              meta={w.medium}
+              coverLabel={w.categoryName}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div class="void-inline" data-filter-empty hidden>
+        <p>这个分类下还没有东西。</p>
+      </div>
+    </div>
+  )
+}
+
+<script>
+  import '../../scripts/filters';
+</script>

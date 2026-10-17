@@ -1,0 +1,40 @@
+---
+/**
+ * 评论区。只在 blog / note / story 的文章页出现，作品页没有。
+ *
+ * 四个 ID 来自 giscus.app，写进 .env 即可生效：
+ *   PUBLIC_GISCUS_REPO=owner/repo
+ *   PUBLIC_GISCUS_REPO_ID=…
+ *   PUBLIC_GISCUS_CATEGORY=Announcements
+ *   PUBLIC_GISCUS_CATEGORY_ID=…
+ * 没配置时这里是一条说明，不会加载任何第三方脚本（本地开发也不会）。
+ *
+ * 真正的注入在 scripts/reading.ts：只有滚到评论区附近才加载 iframe。
+ */
+const repo = import.meta.env.PUBLIC_GISCUS_REPO ?? '';
+const repoId = import.meta.env.PUBLIC_GISCUS_REPO_ID ?? '';
+const category = import.meta.env.PUBLIC_GISCUS_CATEGORY ?? 'Announcements';
+const categoryId = import.meta.env.PUBLIC_GISCUS_CATEGORY_ID ?? '';
+const configured = Boolean(repo && repoId && categoryId);
+---
+
+<section class="comments" aria-labelledby="comments-title">
+  <h2 class="comments__head" id="comments-title">评论</h2>
+
+  {
+    configured ? (
+      <div
+        data-giscus
+        data-repo={repo}
+        data-repo-id={repoId}
+        data-category={category}
+        data-category-id={categoryId}
+      />
+    ) : (
+      <p class="comments__note">
+        评论区还没接上。把 giscus 的四个 ID 写进 <code>.env</code>（<code>PUBLIC_GISCUS_*</code>），
+        刷新就会出现在这里。
+      </p>
+    )
+  }
+</section>

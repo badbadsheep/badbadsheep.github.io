@@ -1,0 +1,48 @@
+---
+/**
+ * 右上角四件套：栏目（三道杠）/ 明暗 / 归档 / 搜索。
+ * 行为在 scripts/shell.ts；这里只出结构。
+ */
+interface Props {
+  /** 首页第一屏全程隐藏，滚过第一屏才淡入 */
+  home?: boolean;
+}
+
+const { home = false } = Astro.props;
+---
+
+<div class="nav" data-nav data-hidden={home ? '' : undefined} role="group" aria-label="站点工具">
+  <button
+    class="nav__btn"
+    type="button"
+    data-drawer-toggle
+    aria-controls="bbs-drawer"
+    aria-expanded="false"
+    aria-label="栏目"
+  >
+    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+      <path d="M1 4h14M1 8h14M1 12h9" fill="none" stroke="currentColor" stroke-width="1.2" />
+    </svg>
+  </button>
+
+  <button class="nav__btn" type="button" data-theme-toggle aria-label="切换明暗" aria-pressed="false">
+    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.1" />
+      <path d="M8 1.8a6.2 6.2 0 0 0 0 12.4z" fill="currentColor" />
+    </svg>
+  </button>
+
+  <a class="nav__btn" href="/archive/" aria-label="归档">
+    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+      <path d="M2 4.5h12M2 4.5v9h12v-9M4.5 2.5h7v2h-7z" fill="none" stroke="currentColor" stroke-width="1.1" />
+      <path d="M6 8h4" fill="none" stroke="currentColor" stroke-width="1.1" />
+    </svg>
+  </a>
+
+  <button class="nav__btn" type="button" data-search-open aria-label="搜索">
+    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+      <circle cx="7" cy="7" r="4.4" fill="none" stroke="currentColor" stroke-width="1.2" />
+      <path d="M10.3 10.3 14 14" fill="none" stroke="currentColor" stroke-width="1.2" />
+    </svg>
+  </button>
+</div>

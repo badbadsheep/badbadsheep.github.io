@@ -1,0 +1,55 @@
+---
+/**
+ * 页脚。两个版本内容一致，只是门面版排得松一点。
+ *
+ * 邮箱一律是「只展示」的纯文本，不做 mailto：它是个联系方式，不是按钮。
+ * 想复制就手动选中复制。
+ */
+import { SITE } from '../../data/site';
+
+interface Props {
+  variant?: 'reading' | 'facade';
+}
+
+const { variant = 'reading' } = Astro.props;
+const year = new Date().getFullYear();
+---
+
+{
+  variant === 'facade' ? (
+    <footer class="foot-facade">
+      <div class="wrap">
+        <div class="foot-facade__row">
+          <span>
+            © {year} {SITE.name}
+          </span>
+          <span class="foot-mail">{SITE.email}</span>
+          <a href={`https://github.com/${SITE.github}`} rel="me noopener" target="_blank">
+            GitHub
+          </a>
+          <a href="/about/">关于</a>
+          <a href="/archive/">归档</a>
+          <a href="/feed_rss_created.xml">RSS</a>
+          <a href="/credits/">致谢</a>
+          <span class="foot-facade__tag">{SITE.tagline}</span>
+        </div>
+      </div>
+    </footer>
+  ) : (
+    <footer class="foot wrap">
+      <span>
+        © {year} {SITE.name}
+      </span>
+      <span class="foot-mail">{SITE.email}</span>
+      <a href="/about/">关于</a>
+      <a href="/archive/">归档</a>
+      <a href="/feed_rss_created.xml">RSS</a>
+      <a href={`https://github.com/${SITE.github}`} rel="me noopener" target="_blank">
+        GitHub
+      </a>
+      <a href="/credits/">致谢</a>
+      <span class="foot__spacer"></span>
+      <span>{SITE.tagline}</span>
+    </footer>
+  )
+}

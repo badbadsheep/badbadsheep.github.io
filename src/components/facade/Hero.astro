@@ -1,0 +1,50 @@
+---
+/**
+ * 第一屏 —— 动效层【留空】，但接口与骨架已经就位。
+ *
+ * 现在看到的是纯 CSS 的静态几何构图。这不是临时占位：
+ * 它同时也是 WebGL 不可用 / prefers-reduced-motion / 省流量模式下的降级画面，
+ * 所以以后接上动效时，这一层要原样留着。
+ *
+ * ── 怎么接动效（等你示意图定了之后） ──────────────────────────────────
+ *   1. 写一个场景模块，满足 src/scripts/art/index.ts 里的 Scene 接口
+ *   2. 在 src/scripts/art/index.ts 的 REGISTRY 里登记它
+ *   3. 其余不用动：tier 判定、DPR、resize、页面隐藏暂停、指针与滚动采样、
+ *      webglcontextlost 降级、以及 <canvas data-art> 的挂载，都已经写好了
+ *
+ * 交互相关的文案与结构（大字、tagline、向下提示）在这里改。
+ */
+import { SITE } from '../../data/site';
+
+const [first, ...rest] = ['badbad', 'sheep'];
+---
+
+<section class="hero" id="s-top" aria-labelledby="hero-title">
+  <div class="hero__stage" aria-hidden="true">
+    <div class="hero__geo">
+      <span class="hero__circle"></span>
+      <span class="hero__bar hero__bar--h1"></span>
+      <span class="hero__bar hero__bar--h2"></span>
+      <span class="hero__bar hero__bar--v1"></span>
+      <span class="hero__bar hero__bar--v2"></span>
+      <span class="hero__block hero__block--1"></span>
+      <span class="hero__block hero__block--2"></span>
+    </div>
+    {/* 动效层画在这里。现在它是空的，CSS 构图透上来。 */}
+    <canvas class="hero__canvas" data-art></canvas>
+  </div>
+
+  <div class="hero__inner wrap">
+    <h1 class="hero__title" id="hero-title">
+      <span>{first}</span>
+      {rest.map((line) => <span>{line}</span>)}
+    </h1>
+    <p class="hero__tag">{SITE.tagline}</p>
+    <p class="hero__cue"><span>向下</span><span aria-hidden="true">↓</span></p>
+  </div>
+
+  <script>
+    import { mountHero } from '../../scripts/art';
+    mountHero();
+  </script>
+</section>

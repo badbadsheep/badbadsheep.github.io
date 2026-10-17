@@ -1,0 +1,61 @@
+name: Deploy
+
+# 先备着，不推。等你确认要上线时再把 push 触发打开。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # 字体子集是构建期生成的（不进仓库），所以必须先跑
+      - name: 字体子集
+        run: pnpm fonts
+
+      - name: 类型检查
+        run: pnpm check
+
+      - name: 构建
+        run: pnpm build
+
+      # 死链检查是"发布前最后一道门"，失败就别上线
+      - name: 死链检查
+        run: pnpm links
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

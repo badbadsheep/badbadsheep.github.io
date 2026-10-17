@@ -1,0 +1,31 @@
+---
+import Facade from '../layouts/Facade.astro';
+import { STREAM_SECTIONS, sectionByKey } from '../data/sections';
+
+const gallery = sectionByKey('gallery')!;
+const exits = [
+  { href: '/', label: '回首页' },
+  { href: '/archive/', label: '归档' },
+  ...STREAM_SECTIONS.map((s) => ({ href: s.url, label: s.name })),
+  { href: gallery.url, label: gallery.name },
+];
+---
+
+<Facade title="404" description="这个地址没有东西。">
+  <section class="screen">
+    <div class="screen__inner">
+      <header class="screen__head">
+        <h1 class="screen__mark">404.</h1>
+        <span class="screen__idx">NOT FOUND</span>
+        <p class="screen__desc">
+          这条路我没有修。可能是链接旧了，也可能是我把东西挪了地方 ——
+          但按自己定的规矩，旧地址本来不该失效。要不从下面挑一个入口？
+        </p>
+      </header>
+
+      <ul class="linklist">
+        {exits.map((e) => <li><a href={e.href}>{e.label}</a></li>)}
+      </ul>
+    </div>
+  </section>
+</Facade>

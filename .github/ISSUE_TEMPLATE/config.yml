@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 关于这个博客 / 自我介绍
+    url: https://badbadsheep.github.io/about/
+    about: 想先知道这是谁、写了些什么，从这页开始。
+  - name: 站内全部文章
+    url: https://badbadsheep.github.io/archive/
+    about: 按时间排的全部内容。
+  - name: 直接写信
+    url: mailto:3360421858@qq.com
+    about: 不适合公开开 issue 的事情发邮件。

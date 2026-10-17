@@ -1,0 +1,34 @@
+---
+/** 同栏目内的上一篇 / 下一篇。上一篇 = 更新的那篇。 */
+import type { Post } from '../../lib/content';
+
+interface Props {
+  newer?: Post;
+  older?: Post;
+}
+
+const { newer, older } = Astro.props;
+---
+
+{
+  (newer || older) && (
+    <nav class="prevnext" aria-label="上下篇">
+      <div>
+        {newer && (
+          <a href={newer.url}>
+            <span class="prevnext__label">← 更新的一篇</span>
+            <span class="prevnext__title">{newer.title}</span>
+          </a>
+        )}
+      </div>
+      <div class="prevnext__next">
+        {older && (
+          <a href={older.url}>
+            <span class="prevnext__label">更早的一篇 →</span>
+            <span class="prevnext__title">{older.title}</span>
+          </a>
+        )}
+      </div>
+    </nav>
+  )
+}

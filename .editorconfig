@@ -1,0 +1,28 @@
+# 编辑器约定。VS Code / JetBrains / Sublime 都认这个文件，
+# 目的是让人写出来的东西和仓库里存的字节一致，省掉"我这没改啊"的 diff。
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Markdown 行尾的两个空格是硬换行，删了会改变渲染结果
+[*.md]
+trim_trailing_whitespace = false
+
+# cmd 只吃 CRLF
+[*.{cmd,bat}]
+end_of_line = crlf
+
+# scripts/new.ps1 依赖 UTF-8 BOM：没有 BOM 时 Windows PowerShell 会按 GBK 读，
+# 中文串把引号截断，整个脚本解析失败（README 第十一节有记）。
+[*.ps1]
+charset = utf-8-bom
+end_of_line = lf
+
+[*.{yml,yaml,json}]
+indent_size = 2

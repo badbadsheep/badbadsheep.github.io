@@ -1,0 +1,32 @@
+version: 2
+
+# 依赖升级走 PR，不直接推 main —— 这样 deploy 前的类型/构建/死链三道门会先替跑一遍。
+# 注意：这个文件只在仓库 Settings → Code security 里 Dependabot 开启后才生效。
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore(deps)'
+    groups:
+      # Astro 全家桶一起升：核心与官方集成之间版本挂钩，拆开升容易出半截状态
+      astro:
+        patterns:
+          - astro
+          - '@astrojs/*'
+    ignore:
+      # Astro 的大版本升级是重构，不适合自动 PR，手动处理
+      - dependency-name: astro
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: 'chore(ci)'

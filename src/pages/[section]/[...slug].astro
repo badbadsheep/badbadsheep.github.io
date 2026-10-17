@@ -1,0 +1,98 @@
+---
+/** 文章详情（博客 / 笔记 / 故事）。作品详情在 gallery/[slug].astro。 */
+import { render } from 'astro:content';
+import Reading from '../../layouts/Reading.astro';
+import Toc from '../../components/reading/Toc.astro';
+import PrevNext from '../../components/reading/PrevNext.astro';
+import Giscus from '../../components/comments/Giscus.astro';
+import { STREAM_SECTIONS } from '../../data/sections';
+import { getNeighbours, getSectionPosts, type Post } from '../../lib/content';
+import type { StreamSection } from '../../data/sections';
+import { topicOf } from '../../data/topics';
+
+export async function getStaticPaths() {
+  const paths = [];
+  for (const section of STREAM_SECTIONS) {
+    const posts = await getSectionPosts(section.key);
+    for (const post of posts) {
+      paths.push({ params: { section: section.segment, slug: post.id }, props: { section, post } });
+    }
+  }
+  return paths;
+}
+
+interface Props {
+  section: StreamSection;
+  post: Post;
+}
+
+const { section, post } = Astro.props;
+const { Content, headings } = await render(post.entry);
+const { newer, older } = await getNeighbours(section.key, post.id);
+
+/** 结构化数据。搜索引擎读 JSON-LD 不看位置，放正文里也就够了。 */
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: post.title,
+  datePublished: post.dateISO,
+  dateModified: post.dateISO,
+  author: { '@type': 'Person', name: 'badbadsheep' },
+  publisher: { '@type': 'Person', name: 'badbadsheep' },
+  description: post.summary,
+  url: new URL(post.url, 'https://badbadsheep.github.io').href,
+  inLanguage: 'zh-CN',
+  keywords: post.tags.join(', '),
+  wordCount: post.chars,
+};
+---
+
+<Reading
+  title={post.title}
+  description={post.summary}
+  type="article"
+  published={post.dateISO}
+  tags={post.tags}
+  wide
+>
+  <article class="article">
+    <div class="article__main">
+      <header class="article__head">
+        <a class="article__kicker" href={section.url}>{section.mark}</a>
+        <h1 class="article__title">{post.title}</h1>
+        <div class="article__meta">
+          <span>{post.dateISO}</span>
+          <span>{section.name}</span>
+          {
+            post.tags.map((tag) => {
+              const topic = topicOf(tag);
+              return topic ? <a href={`/topics/${topic.slug}/`}>{tag}</a> : <span>{tag}</span>;
+            })
+          }
+          <span>{post.chars} 字</span>
+          <span>约 {post.minutes} 分钟</span>
+        </div>
+      </header>
+
+      <div class="prose">
+        <Content />
+      </div>
+
+      <PrevNext newer={newer} older={older} />
+
+      {/* 回到上一级：跳到这个栏目的导航页 */}
+      <a class="up-link up-link--bottom" href={section.url}>
+        <span aria-hidden="true">↑</span> 回到上一级
+      </a>
+
+      {/* 评论只在文章页出现，作品页没有 */}
+      <Giscus />
+    </div>
+
+    <Toc headings={headings} />
+  </article>
+
+  {post.draft && <div class="draftbar">草稿 · 只在本地可见</div>}
+
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Reading>

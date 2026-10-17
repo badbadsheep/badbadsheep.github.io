@@ -1,0 +1,562 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   外壳控件 · 门面与阅读区共用
+   ─────────────────────────────────────────────────────────────────────
+   包含：基础排版、跳过链接、右上角导航簇、栏目抽屉、搜索覆盖层、页脚。
+   版式（首页 / 文章页各自长什么样）不在这里 —— 在 facade.css 与 reading.css。
+   ═══════════════════════════════════════════════════════════════════════ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--f-sans);
+  font-size: var(--t-body);
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+::selection {
+  background: var(--selection-bg);
+  color: var(--selection-fg);
+}
+
+img,
+svg,
+canvas {
+  max-width: 100%;
+}
+
+.wrap {
+  width: min(100% - 2 * var(--s-5), 68rem);
+  margin-inline: auto;
+}
+
+/* ── 无障碍工具 ───────────────────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip {
+  position: fixed;
+  left: var(--s-4);
+  top: -4rem;
+  z-index: 100;
+  padding: var(--s-2) var(--s-4);
+  background: var(--fg);
+  color: var(--bg);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  transition: top var(--d-fast) var(--ease-out);
+}
+
+.skip:focus {
+  top: var(--s-2);
+  text-decoration: none;
+}
+
+/* ── 右上角导航簇 ───────────────────────────────────────────────────────
+   四件套：三道杠（栏目）/ 明暗 / 归档 / 搜索。
+   首页第一屏隐藏（.nav[data-hidden]），滚过第一屏后由 snap.ts 淡入。 */
+.nav {
+  position: fixed;
+  top: max(var(--s-4), env(safe-area-inset-top));
+  right: max(var(--s-4), env(safe-area-inset-right));
+  z-index: var(--z-nav);
+  display: flex;
+  gap: var(--s-2);
+  transition: opacity var(--d-base) var(--ease-out), transform var(--d-base) var(--ease-out);
+}
+
+.nav[data-hidden] {
+  opacity: 0;
+  transform: translateY(-0.75rem);
+  pointer-events: none;
+}
+
+/* 抽屉 / 搜索层打开时，导航簇让位 */
+body[data-overlay] .nav {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nav__btn {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--fg-2);
+  cursor: pointer;
+  transition: color var(--d-fast) var(--ease-out), border-color var(--d-fast) var(--ease-out),
+    background var(--d-fast) var(--ease-out);
+}
+
+.nav__btn:hover {
+  color: var(--fg);
+  border-color: var(--line-2);
+  background: var(--bg);
+}
+
+.nav__btn svg {
+  display: block;
+}
+
+/* ── 栏目抽屉 ───────────────────────────────────────────────────────────── */
+.drawer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drawer);
+}
+
+.drawer[hidden] {
+  display: none;
+}
+
+.drawer__scrim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+  opacity: 0;
+  transition: opacity var(--d-base) var(--ease-out);
+}
+
+.drawer[data-open] .drawer__scrim {
+  opacity: 1;
+}
+
+.drawer__panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(24rem, 88vw);
+  height: 100%;
+  /**
+   * 关键三行：面板自己绝不滚（overflow: hidden），
+   * 标题条不许被压缩（flex: 0 0 auto），列表才有资格滚（flex:1 + min-height:0）。
+   * 少了 min-height:0，flex 子项的 min-height 默认是 auto，
+   * 列表会把面板顶出屏幕，于是"标题跟着内容一起跑"。
+   */
+  overflow: hidden;
+  background: var(--bg);
+  border-left: var(--hairline) solid var(--line);
+  transform: translateX(100%);
+  transition: transform var(--d-base) var(--ease-out);
+}
+
+.drawer[data-open] .drawer__panel {
+  transform: none;
+}
+
+.drawer__head {
+  flex: 0 0 auto;
+  /* 双保险：万一某个浏览器把整个面板滚起来，标题条也钉在顶上不走 */
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  min-height: var(--nav-h);
+  padding-inline: var(--s-5);
+  background: var(--bg);
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+/* 首页入口：四个栏目的上方 */
+.drawer__home {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border: var(--hairline) solid var(--line-2);
+  color: var(--fg);
+  font-family: var(--f-mono);
+  font-size: var(--t-s);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition: background var(--d-fast) var(--ease-out), color var(--d-fast) var(--ease-out),
+    border-color var(--d-fast) var(--ease-out);
+}
+
+.drawer__home:hover {
+  background: var(--fg);
+  border-color: var(--fg);
+  color: var(--bg);
+  text-decoration: none;
+}
+
+.drawer__title {
+  margin: 0;
+  font-family: var(--f-mono);
+  font-size: var(--t-s);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+
+.drawer__close {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: var(--hairline) solid var(--line-2);
+  background: none;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.drawer__close:hover {
+  border-color: var(--fg);
+}
+
+.drawer__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--s-3) var(--s-5) var(--s-5);
+}
+
+.drawer__label {
+  margin: var(--s-6) 0 var(--s-2);
+  font-family: var(--f-mono);
+  font-size: var(--t-s);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+
+.drawer__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.drawer__list a,
+.drawer__list button {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  width: 100%;
+  padding: var(--s-4) 0;
+  border: 0;
+  border-bottom: var(--hairline) solid var(--line);
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-size: 1.0625rem;
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--d-fast) var(--ease-out), padding-left var(--d-fast) var(--ease-out);
+}
+
+.drawer__list a:hover,
+.drawer__list button:hover {
+  padding-left: var(--s-2);
+  text-decoration: none;
+}
+
+.drawer__item-mark {
+  font-family: var(--f-display);
+  font-size: 1.0625rem;
+  min-width: 4.5rem;
+}
+
+.drawer__item-name {
+  font-family: var(--f-sans);
+}
+
+.drawer__item-count {
+  margin-left: auto;
+  font-family: var(--f-mono);
+  font-size: var(--t-s);
+  color: var(--fg-2);
+}
+
+/* ── 搜索覆盖层 ─────────────────────────────────────────────────────────── */
+.search {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-search);
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--bg) 96%, transparent);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--d-base) var(--ease-out);
+}
+
+.search[data-open] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.search__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-5);
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.search__input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--s-3) 0;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  font-family: var(--f-display);
+  font-size: var(--t-l);
+  line-height: 1.2;
+}
+
+.search__input::placeholder {
+  color: var(--fg-3);
+}
+
+.search__input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* type=search 的原生清除按钮长得和这套设计不搭，也不可控 —— 用我们自己的关闭按钮 */
+.search__input::-webkit-search-cancel-button,
+.search__input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.search__close {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: var(--hairline) solid var(--line);
+  background: none;
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+.search__close:hover {
+  color: var(--fg);
+  border-color: var(--line-2);
+}
+
+.search__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--s-5);
+}
+
+.search__hint {
+  margin: 0 0 var(--s-4);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.search__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search__item a {
+  display: block;
+  padding: var(--s-4) 0;
+  border-bottom: var(--hairline) solid var(--line);
+  text-decoration: none;
+}
+
+.search__item a:hover,
+.search__item a[data-active] {
+  text-decoration: none;
+  padding-left: var(--s-3);
+  border-left: 2px solid var(--accent);
+}
+
+.search__item-title {
+  display: block;
+  font-family: var(--f-display);
+  font-size: var(--t-m);
+  line-height: 1.3;
+}
+
+.search__item-meta {
+  display: block;
+  margin-top: var(--s-1);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+}
+
+.search__item mark {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+/* ── 没有 JS 时的导航带 ─────────────────────────────────────────────────── */
+.nojs {
+  padding-block: var(--s-4) var(--s-3);
+  border-bottom: var(--hairline) solid var(--line);
+  background: var(--bg);
+}
+
+.nojs .linklist {
+  margin-top: 0;
+  flex-wrap: wrap;
+}
+
+/* ── 回到上一级 / 回到主页 ───────────────────────────────────────────────
+   两个地方都用它：文章页底部（回栏目）、栏目页顶部（回首页）。
+   放在 shell.css 而不是 reading.css，因为影像页是门面布局，读不到 reading.css。 */
+.up-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-4);
+  border: var(--hairline) solid var(--line-2);
+  color: var(--fg-2);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition: color var(--d-fast) var(--ease-out), border-color var(--d-fast) var(--ease-out),
+    background var(--d-fast) var(--ease-out);
+}
+
+.up-link:hover {
+  background: var(--fg);
+  border-color: var(--fg);
+  color: var(--bg);
+  text-decoration: none;
+}
+
+/* 放在文章页底部时和上文拉开距离 */
+.up-link--bottom {
+  margin-top: var(--s-5);
+}
+
+/* 放在栏目页左上角时和下文拉开距离 */
+.up-link--top {
+  margin-bottom: var(--s-6);
+}
+/* ── 通用链接列表（404、空态出口用） ─────────────────────────────────── */
+.linklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3) var(--s-5);
+  margin: var(--s-6) 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--f-mono);
+  font-size: var(--t-s);
+  letter-spacing: 0.06em;
+}
+
+.linklist a {
+  padding-bottom: 0.15em;
+  border-bottom: var(--hairline) solid var(--line-2);
+  color: var(--fg-2);
+}
+
+.linklist a:hover {
+  color: var(--fg);
+  border-bottom-color: var(--fg);
+  text-decoration: none;
+}
+
+/* ── 页脚 ───────────────────────────────────────────────────────────────── */
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-3) var(--s-5);
+  padding: var(--s-6) 0 calc(var(--s-6) + env(safe-area-inset-bottom));
+  border-top: var(--hairline) solid var(--line);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+}
+
+.foot a:hover {
+  color: var(--fg-2);
+}
+
+.foot__spacer {
+  margin-left: auto;
+}
+
+/* ── 触摸设备放大可点区域 ─────────────────────────────────────────────── */
+@media (pointer: coarse) {
+  .nav__btn,
+  .drawer__close,
+  .search__close {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer__scrim,
+  .drawer__panel,
+  .nav {
+    transition: none;
+  }
+}

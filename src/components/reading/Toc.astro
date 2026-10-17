@@ -1,0 +1,47 @@
+---
+/**
+ * 右侧目录面板。
+ *
+ * 结构：面板（可拖宽度 + 左侧分隔线 + 拖拽手柄）→ 竖排居中 → 目录本体。
+ * 宽度由 --toc-w 控制（reading.ts 拖动时改它，并写进 localStorage）。
+ *
+ * 收录 h1–h4：只收 h2+h3 的话，正文里用 `#` 分节的文章会一个标题都收不到，
+ * 目录看起来就像"坏了"。（文章标题本身来自 front matter，不在 headings 里，
+ * 所以收录 h1 不会和标题重复。）
+ */
+interface Props {
+  headings: { depth: number; slug: string; text: string }[];
+}
+
+const { headings } = Astro.props;
+const items = headings.filter((h) => h.depth >= 1 && h.depth <= 4);
+---
+
+{
+  items.length > 0 && (
+    <aside class="toc-panel" data-toc-panel>
+      <div
+        class="toc-grip"
+        data-toc-grip
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="拖动调整目录宽度，也可以聚焦后用左右方向键"
+        tabindex="0"
+      />
+      <div class="toc-panel__inner">
+        <nav class="toc" aria-label="本文目录" data-toc>
+          <p class="toc__label">目录</p>
+          <ul>
+            {items.map((h) => (
+              <li class={`lvl-${h.depth}`}>
+                <a href={`#${h.slug}`} data-toc-link>
+                  {h.text}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </aside>
+  )
+}

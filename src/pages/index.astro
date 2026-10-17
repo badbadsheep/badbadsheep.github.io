@@ -1,0 +1,38 @@
+---
+/**
+ * 首页：第一屏（动效留空）+ 四个栏目屏 + 页脚。
+ * 第一屏的静态构图在 Hero.astro / facade.css 里；动效接入点见 scripts/art/index.ts。
+ *
+ * 四屏底下的网格形状按「第几屏」分配，不按栏目名 —— 见下面的 GRID_PATTERNS。
+ */
+import Facade from '../layouts/Facade.astro';
+import Hero from '../components/facade/Hero.astro';
+import SectionScreen from '../components/facade/SectionScreen.astro';
+import { SECTIONS } from '../data/sections';
+import type { Pattern } from '../scripts/grid/lattice';
+import { getPosts, getWorks } from '../lib/content';
+
+const posts = await getPosts();
+const works = await getWorks();
+
+const postsOf = (key: string) => posts.filter((p) => p.section.key === key);
+
+/** 方形 → 三角形 → 六边形 → 随意多边形（顺序就是屏序，见 SPEC 7.1） */
+const GRID_PATTERNS: Pattern[] = ['square', 'triangle', 'hex', 'poly'];
+---
+
+<Facade home>
+  <Hero />
+
+  {
+    SECTIONS.map((section, i) => (
+      <SectionScreen
+        section={section}
+        posts={postsOf(section.key)}
+        works={works}
+        limit={6}
+        pattern={GRID_PATTERNS[i] ?? 'poly'}
+      />
+    ))
+  }
+</Facade>

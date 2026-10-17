@@ -1,0 +1,28 @@
+---
+/** 列表第 2 页起。条数不够时这个路由一个页面都不生成。 */
+import Reading from '../../../layouts/Reading.astro';
+import StreamList from '../../../components/reading/StreamList.astro';
+import { STREAM_SECTIONS, PAGE_SIZE } from '../../../data/sections';
+import { getSectionPosts } from '../../../lib/content';
+
+export async function getStaticPaths() {
+  const paths = [];
+  for (const section of STREAM_SECTIONS) {
+    const all = await getSectionPosts(section.key);
+    const totalPages = Math.ceil(all.length / PAGE_SIZE);
+    for (let page = 2; page <= totalPages; page++) {
+      paths.push({
+        params: { section: section.segment, page: String(page) },
+        props: { section, page, totalPages, posts: all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) },
+      });
+    }
+  }
+  return paths;
+}
+
+const { section, page, totalPages, posts } = Astro.props;
+---
+
+<Reading title={`${section.name} · 第 ${page} 页`} description={section.desc}>
+  <StreamList section={section} posts={posts} page={page} totalPages={totalPages} />
+</Reading>

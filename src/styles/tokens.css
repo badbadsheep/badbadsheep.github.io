@@ -1,0 +1,214 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   设计令牌 · 全站唯一取值来源
+   ─────────────────────────────────────────────────────────────────────
+   规矩：别的 CSS 文件里不许出现十六进制颜色、不许出现像素字号。
+   要改一个值，只能改这里。
+
+   基调：纯黑白 + 直角 + 发丝线。门面（首页/影像）锁死黑底，
+        阅读区有明暗两套。强调色 --accent 目前等于前景色，
+        将来想把某处点亮，只改这一行。
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── 字体：自托管，两点约定 ──────────────────────────────────────────────
+   1. Instrument Serif 只有拉丁子集（中文字符全部回落到下一个字体）
+   2. 得意黑只切了界面用到的那些字，体积可控（约 15KB）
+   两者都在 public/fonts/，用绝对路径引用 —— 不经过打包器，不会被改写成 /_astro/xxx。 */
+
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/instrument-serif-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/instrument-serif-latin-400-italic.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* 得意黑：只用于「签名性」中文（栏目名、页面大标题、闸门词）。
+   子集由 scripts/subset-fonts.mjs 生成；文件缺失时浏览器静默回落系统字体，
+   不会出现豆腐块，只是字形不统一。 */
+@font-face {
+  font-family: 'Smiley Sans';
+  font-style: oblique 0deg 12deg;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/smiley-sans-subset.woff2') format('woff2');
+}
+
+/* ── 令牌 ─────────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+
+  /* 灰阶：深色（默认） */
+  --bg: #000000;
+  --bg-2: #080808;
+  --bg-3: #111111;
+  --line: #1f1f1f;
+  --line-2: #3d3d3d;
+  --fg: #ffffff;
+  --fg-2: #a8a8a8;
+  --fg-3: #8a8a8a;
+
+  /* 代码块的"实底"色：必须和 Shiki 主题自带的背景一致，
+     否则折叠时的渐隐会露出一块色差。dark-plus 是 #1E1E1E，light-plus 是 #FFFFFF。 */
+  --code-solid: #1e1e1e;
+
+  /* 颜色入口：想上色就改这两行 */
+  --accent: var(--fg);
+  --accent-fg: var(--bg);
+
+  /* 几何层墨色（RGB 三元组，供 rgba() 拼接） */
+  --art-ink: 255, 255, 255;
+  --art-line: 255, 255, 255;
+
+  /* 首页四屏网格（scripts/grid 读这三个值：
+     颜色、次线透明度、主线透明度 —— B 版「工程图纸」才用得上后两个） */
+  --grid-ink: 255, 255, 255;
+  --grid-alpha: 0.2;
+  --grid-alpha-strong: 0.32;
+  --grid-alpha-node: 0.3;
+
+  /* 字体栈 */
+  --f-display: 'Instrument Serif', 'Smiley Sans', 'Songti SC', 'STSong', serif;
+  --f-sans: ui-sans-serif, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  --f-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'JetBrains Mono', Consolas,
+    'Courier New', monospace;
+
+  /* 字阶（流体） */
+  --t-mega: clamp(3rem, 1rem + 13vw, 13rem);
+  /* 栏目落地页的大字：取 mega 与 xl 的中间值。
+     四个栏目页（博客/笔记/故事/影像）标题必须同高，否则一看就是两套东西。 */
+  --t-mark: clamp(2.8rem, 1.2rem + 6vw, 8.5rem);
+  --t-xl: clamp(2rem, 1.3rem + 3.2vw, 4rem);
+  --t-l: clamp(1.5rem, 1.2rem + 1.4vw, 2.4rem);
+  --t-m: clamp(1.15rem, 1.05rem + 0.5vw, 1.5rem);
+  --t-body: clamp(1rem, 0.96rem + 0.18vw, 1.0625rem);
+  --t-s: 0.875rem;
+  --t-xs: 0.75rem;
+
+  /* 间距 */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+  --s-7: 3rem;
+  --s-8: 4.5rem;
+  --s-9: 7rem;
+
+  /* 形状：冷峻锐利 —— 直角、细线、无阴影 */
+  --radius: 0px;
+  --hairline: 1px;
+
+  /* 动效 */
+  --d-fast: 120ms;
+  --d-base: 260ms;
+  --d-slow: 520ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* 阅读区度量 */
+  --measure: 42rem;
+  /* 正文栏的最大宽度：文章正文填满"左边距 → 目录左缘"之间的空间，上限到这里。
+     68rem ≈ 一行 60 多个汉字，已经偏长 —— 想更窄就用鼠标把右侧目录拖宽，
+     拖手柄本质上就是这个站的行长旋钮。 */
+  --article-max: 68rem;
+  --nav-h: 3.5rem;
+  /* 右侧目录面板的宽度。reading.ts 拖动时会改这个变量（并记住），
+     所以别在别处写死目录宽度。 */
+  --toc-w: 14rem;
+
+  /* 焦点与选区 */
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--fg);
+  --selection-bg: var(--fg);
+  --selection-fg: var(--bg);
+
+  /* 分层 */
+  --z-art: 0;
+  --z-content: 1;
+  --z-nav: 40;
+  --z-drawer: 60;
+  --z-search: 70;
+  --z-lightbox: 80;
+
+  /* 气泡（形状未定：改这四个值就能换形态，不必动组件） */
+  --bubble-radius: 0px;
+  --bubble-border: var(--line-2);
+  --bubble-pad: var(--s-5);
+  --bubble-lift: 3px;
+
+  /* 几何层降级参数（scripts/art 读这些值） */
+  --art-density: 1;
+  --art-speed: 1;
+}
+
+/* ── 浅色：只翻灰阶，其他令牌不动 ─────────────────────────────────────── */
+[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #ffffff;
+  --bg-2: #f7f7f7;
+  --bg-3: #ededed;
+  --line: #e2e2e2;
+  --line-2: #bdbdbd;
+  --fg: #000000;
+  --fg-2: #555555;
+  --fg-3: #6b6b6b;
+
+  --code-solid: #ffffff;
+
+  --art-ink: 0, 0, 0;
+  --art-line: 0, 0, 0;
+
+  --grid-ink: 0, 0, 0;
+  --grid-alpha: 0.2;
+  --grid-alpha-strong: 0.32;
+  --grid-alpha-node: 0.3;
+
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--fg);
+}
+
+/* ── 门面锁黑 ───────────────────────────────────────────────────────────
+   首页与影像页永远是黑底白字，即使站点开了浅色主题。
+   做法是把整套灰阶在局部作用域里重新盖一遍 —— 门面内部的一切照旧用令牌，
+   不需要任何组件知道"现在是黑还是白"。 */
+.is-facade {
+  color-scheme: dark;
+
+  --bg: #000000;
+  --bg-2: #080808;
+  --bg-3: #111111;
+  --line: #1f1f1f;
+  --line-2: #3d3d3d;
+  --fg: #ffffff;
+  --fg-2: #a8a8a8;
+  --fg-3: #8a8a8a;
+  --art-ink: 255, 255, 255;
+  --art-line: 255, 255, 255;
+  --grid-ink: 255, 255, 255;
+}
+
+/* ── 尊重系统设置 ─────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --d-fast: 1ms;
+    --d-base: 1ms;
+    --d-slow: 1ms;
+    --art-density: 0;
+    --art-speed: 0;
+  }
+}

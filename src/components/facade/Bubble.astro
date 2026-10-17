@@ -1,0 +1,44 @@
+---
+/**
+ * 气泡：一个纯展示组件。
+ *
+ * 两种形态：
+ *   card —— 网格里的方块（影像墙用）
+ *   row  —— 窄而长的一整条（首页栏目屏用，一行标题 + 日期）
+ * 形状相关的东西全部由 tokens.css 的 --bubble-* 控制，改形状不用动这个文件。
+ */
+interface Props {
+  href: string;
+  /** 左上角那行小字：栏目名 / 分类名 / 年份 */
+  mark?: string;
+  title: string;
+  summary?: string;
+  /** 右下角那行小字：日期 / 媒介 */
+  meta?: string;
+  /** 有封面就走卡片式，没有就是纯文字气泡 */
+  cover?: string;
+  coverLabel?: string;
+  /** row = 首页那种长条；card = 影像墙那种方块 */
+  layout?: 'card' | 'row';
+}
+
+const { href, mark, title, summary, meta, cover, coverLabel, layout = 'card' } = Astro.props;
+const isRow = layout === 'row';
+const withCover = !isRow && (Boolean(cover) || Boolean(coverLabel));
+---
+
+<a class:list={['bubble', { 'bubble--work': withCover, 'bubble--row': isRow }]} href={href}>
+  {
+    withCover && (
+      <span class="bubble__cover">
+        {cover ? <img src={cover} alt="" loading="lazy" decoding="async" /> : coverLabel}
+      </span>
+    )
+  }
+  <span class="bubble__body">
+    {mark && <span class="bubble__mark">{mark}</span>}
+    <span class="bubble__title">{title}</span>
+    {summary && !isRow && <span class="bubble__sum">{summary}</span>}
+    {meta && <span class="bubble__date">{meta}</span>}
+  </span>
+</a>

@@ -1,0 +1,35 @@
+# 换行符：仓库里一律存 LF，检出时按具体规则分配。
+# 没有这一段，Windows 上克隆会按 core.autocrlf 各自解释，
+# 同一份文件在不同机器上 diff 出满屏"整行修改"。
+* text=auto eol=lf
+
+# Windows 批处理必须是 CRLF —— cmd 对 LF 的容错很差，
+# goto / 标签在这种文件里会解析错。
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# PowerShell：scripts/new.ps1 是 LF + UTF-8 BOM 存的（见 README 第十一节），
+# 别让检出把它改成 CRLF，免得以后再回来查"为什么脚本坏了"。
+*.ps1 text eol=lf
+
+# 显式声明二进制，避免 git 做行尾转换、也避免 gits diff 把它当文本读
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.otf binary
+*.ttf binary
+*.zip binary
+
+# GitHub 语言统计：字体、锁文件、构建产物都不该算成"这个仓库的语言"
+public/fonts/** linguist-vendored
+scripts/fonts-src/** linguist-vendored
+*.otf linguist-vendored
+pnpm-lock.yaml linguist-generated
+dist/** linguist-generated
+.shots/** linguist-generated

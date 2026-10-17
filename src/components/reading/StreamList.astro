@@ -1,0 +1,67 @@
+---
+/** 流水栏目的列表：页头 + 时间流 + 分页。空栏目只写一句话。 */
+import type { Post } from '../../lib/content';
+import type { Section } from '../../data/sections';
+
+interface Props {
+  section: Section;
+  posts: Post[];
+  page?: number;
+  totalPages?: number;
+}
+
+const { section, posts, page = 1, totalPages = 1 } = Astro.props;
+const pageHref = (n: number): string => (n <= 1 ? section.url : `${section.url}page/${n}/`);
+---
+
+{/* 栏目页左上角：回到主页（和文章页底部的"回到上一级"同一个组件） */}
+<a class="up-link up-link--top" href="/">
+  <span aria-hidden="true">↑</span> 回到上一级
+</a>
+
+<header class="page-head">
+  <p class="page-head__kicker">{section.index} / {section.name}</p>
+  <h1 class="page-head__mark">{section.mark}</h1>
+  <p class="page-head__desc">{section.desc}</p>
+</header>
+
+{
+  posts.length === 0 ? (
+    <div class="void">
+      <p>未来，这里将繁花满地</p>
+    </div>
+  ) : (
+    <>
+      <ul class="rows">
+        {posts.map((p) => (
+          <li class="row">
+            <span class="row__date">{p.dateISO}</span>
+            <div>
+              <h2 class="row__title">
+                <a href={p.url}>{p.title}</a>
+              </h2>
+              {p.summary && <p class="row__sum">{p.summary}</p>}
+              <div class="row__meta">
+                <span>{p.section.name}</span>
+                {p.tags.map((t) => (
+                  <span>{t}</span>
+                ))}
+                <span>{p.minutes} 分钟</span>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {totalPages > 1 && (
+        <nav class="pager" aria-label="分页">
+          {page > 1 ? <a href={pageHref(page - 1)}>← 新一点</a> : <span />}
+          <span class="pager__now">
+            {page} / {totalPages}
+          </span>
+          {page < totalPages ? <a href={pageHref(page + 1)}>旧一点 →</a> : <span />}
+        </nav>
+      )}
+    </>
+  )
+}

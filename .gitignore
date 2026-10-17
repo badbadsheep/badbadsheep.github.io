@@ -1,0 +1,30 @@
+# 依赖与产物
+node_modules/
+dist/
+.astro/
+.pnpm-debug.log*
+
+# 构建期生成的字体子集（源字体在 scripts/fonts-src/，成品可重建）
+public/fonts/smiley-sans-subset.woff2
+
+# 本地环境
+.env
+.env.local
+
+# 本地截图自检（不是产物）
+.shots/
+
+# 编辑器与本地工具
+.vscode/
+.idea/
+*.log
+*.tsbuildinfo
+
+# 迁移期的对照包与原始压缩包（内容已进 src/）
+_handoff/
+astro-handoff.zip
+
+# 系统
+.DS_Store
+Thumbs.db
+desktop.ini

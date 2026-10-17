@@ -1,0 +1,23 @@
+---
+/** 流水栏目的列表页（/blogs/ /notes/ /stories/）。路由段由 sections.ts 驱动。 */
+import Reading from '../../layouts/Reading.astro';
+import StreamList from '../../components/reading/StreamList.astro';
+import { STREAM_SECTIONS, PAGE_SIZE } from '../../data/sections';
+import { getSectionPosts } from '../../lib/content';
+
+export async function getStaticPaths() {
+  return STREAM_SECTIONS.map((section) => ({
+    params: { section: section.segment },
+    props: { section },
+  }));
+}
+
+const { section } = Astro.props;
+const all = await getSectionPosts(section.key);
+const posts = all.slice(0, PAGE_SIZE);
+const totalPages = Math.max(1, Math.ceil(all.length / PAGE_SIZE));
+---
+
+<Reading title={section.name} description={section.desc}>
+  <StreamList section={section} posts={posts} page={1} totalPages={totalPages} />
+</Reading>

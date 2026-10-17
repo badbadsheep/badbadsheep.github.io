@@ -1,0 +1,964 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   阅读区版式 · 文章 / 作品详情 / 关于 / 致谢 / 列表 / 归档
+   ─────────────────────────────────────────────────────────────────────
+   性格：安静。没有背景图形，没有持续动效，一切让位给字。
+   两套主题下都只靠灰阶分层，不靠色相。
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.page {
+  padding-block: var(--s-8) var(--s-9);
+}
+
+/* ── 页面头（列表页 / 归档 / 关于） ───────────────────────────────────── */
+.page-head {
+  padding-bottom: var(--s-5);
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.page-head__kicker {
+  margin: 0;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.page-head__title {
+  margin: var(--s-2) 0 0;
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: var(--t-xl);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* 栏目落地页的大字（博客/笔记/故事）：与影像页同一个字号 */
+.page-head__mark {
+  margin: var(--s-2) 0 0;
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: var(--t-mark);
+  line-height: 0.96;
+  letter-spacing: -0.025em;
+}
+
+.page-head__desc {
+  margin: var(--s-3) 0 0;
+  max-width: 46ch;
+  font-size: var(--t-s);
+  color: var(--fg-2);
+}
+
+/* ── 时间流列表 ───────────────────────────────────────────────────────── */
+.rows {
+  margin: var(--s-6) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  gap: var(--s-4);
+  align-items: baseline;
+  padding: var(--s-4) 0;
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.row[hidden] {
+  display: none;
+}
+
+.row__date {
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+  padding-top: 0.35em;
+}
+
+.row__title {
+  margin: 0 0 var(--s-1);
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: var(--t-m);
+  line-height: 1.28;
+}
+
+.row__title a:hover {
+  text-decoration: none;
+  border-bottom: var(--hairline) solid var(--line-2);
+}
+
+.row__sum {
+  margin: 0;
+  max-width: var(--measure);
+  font-size: var(--t-s);
+  color: var(--fg-2);
+}
+
+.row__meta {
+  margin-top: var(--s-2);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+}
+
+.row__meta span + span::before {
+  content: ' / ';
+}
+
+/* ── 归档：年月小标题 ─────────────────────────────────────────────────── */
+.month {
+  margin: var(--s-6) 0 var(--s-2);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.1em;
+  color: var(--fg-3);
+}
+
+.month-num {
+  color: var(--line-2);
+}
+
+/* ── 文章骨架：正文在左、目录钉在右侧 ──────────────────────────────────
+   正文宽度不再写死 42rem，而是「填满左边距到目录左缘之间的空间」，
+   上限 --article-max（再宽一行就太长、读着累）。
+   所以拖目录的时候正文的右边界会跟着走 —— 拖动才有意义。 */
+.article {
+  display: block;
+}
+
+.article__main {
+  width: min(100%, var(--article-max));
+  min-width: 0;
+}
+
+/* 更宽的阅读版面（文章页 / 作品页）。
+   默认只留普通边距；**只有当页面上真的有目录面板时**才让出右边，
+   否则没有标题的文章会莫名其妙空出一大块。 */
+.page--wide {
+  width: auto;
+  max-width: 84rem;
+  margin-left: clamp(var(--s-5), 8vw, 10rem);
+  margin-right: var(--s-5);
+}
+
+body:has(.toc-panel) .page--wide {
+  margin-right: calc(var(--toc-w) + var(--s-6));
+}
+
+.article__head {
+  padding-bottom: var(--s-5);
+  border-bottom: var(--hairline) solid var(--line);
+  margin-bottom: var(--s-6);
+}
+
+.article__kicker {
+  display: inline-block;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.article__kicker a:hover {
+  color: var(--fg);
+  text-decoration: none;
+}
+
+.article__title {
+  margin: var(--s-3) 0 0;
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: var(--t-xl);
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.article__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-4);
+  margin: var(--s-4) 0 0;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+}
+
+.article__meta a:hover {
+  color: var(--fg-2);
+}
+
+.article__meta span + span::before {
+  content: '·';
+  margin-right: var(--s-4);
+  color: var(--line-2);
+}
+
+/* 作品页顶部那句摘要 */
+.lead {
+  margin: 0 0 var(--s-6);
+  padding-left: var(--s-4);
+  border-left: 2px solid var(--line-2);
+  font-size: var(--t-m);
+  line-height: 1.6;
+  color: var(--fg-2);
+}
+
+/* ── 右侧目录面板 ───────────────────────────────────────────────────────
+   贴住视口右侧、满高的侧栏：左边缘一条发丝线把它和正文隔开，
+   宽度由 --toc-w 控制（拖动左边缘的手柄改它，宽度会写进 localStorage）。
+   内容在面板里垂直居中；面板永远不跟着页面滚。 */
+.toc-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  width: var(--toc-w);
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border-left: var(--hairline) solid var(--line);
+  overflow: hidden;
+  font-size: var(--t-s);
+  transition: width var(--d-base) var(--ease-out);
+}
+
+/* 拖动时关掉过渡，否则会有"追不上手指"的滞后感 */
+.toc-panel[data-dragging] {
+  transition: none;
+}
+
+.toc-panel__inner {
+  width: 100%;
+  max-height: 92vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--s-6) var(--s-4) var(--s-6) var(--s-6);
+}
+
+/* 拖拽手柄：贴着分隔线的一条窄边，带一个可见的短竖条 */
+.toc-grip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.toc-grip::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  width: 2px;
+  height: 56px;
+  margin-top: -28px;
+  background: var(--line-2);
+  transition: background var(--d-fast) var(--ease-out);
+}
+
+.toc-grip:hover::after,
+.toc-grip:focus-visible::after,
+.toc-panel[data-dragging] .toc-grip::after {
+  background: var(--fg);
+}
+
+.toc-grip:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* 收起到最窄时：只留一条竖排的「目录」和手柄，点一下就能重新拉开 */
+.toc-panel[data-collapsed] .toc-panel__inner {
+  display: none;
+}
+
+.toc-panel[data-collapsed]::before {
+  content: '目录';
+  margin: auto;
+  padding-left: var(--s-2);
+  writing-mode: vertical-rl;
+  letter-spacing: 0.3em;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+}
+
+.toc {
+  width: 100%;
+}
+
+.toc__label {
+  margin: 0 0 var(--s-3);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+
+.toc ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toc li + li {
+  margin-top: 0.1em;
+}
+
+.toc a {
+  display: block;
+  padding: 0.3em 0 0.3em var(--s-3);
+  border-left: 2px solid var(--line);
+  color: var(--fg-3);
+  line-height: 1.45;
+  transition: color var(--d-fast) var(--ease-out), border-color var(--d-fast) var(--ease-out);
+}
+
+.toc a:hover {
+  color: var(--fg);
+  text-decoration: none;
+}
+
+.toc a[data-active] {
+  color: var(--fg);
+  border-left-color: var(--accent);
+}
+
+.toc .lvl-3 a {
+  padding-left: var(--s-4);
+  font-size: var(--t-xs);
+}
+
+.toc .lvl-4 a {
+  padding-left: calc(var(--s-4) + var(--s-2));
+  font-size: var(--t-xs);
+  color: var(--fg-2);
+}
+
+/* ── 正文排版 ─────────────────────────────────────────────────────────── */
+.prose {
+  font-size: 1.0625rem;
+  line-height: 1.85;
+  color: var(--fg);
+  overflow-wrap: break-word;
+}
+
+.prose > * {
+  margin-block: 0;
+}
+
+.prose > * + * {
+  margin-top: 1.4em;
+}
+
+.prose h2,
+.prose h3,
+.prose h4 {
+  scroll-margin-top: var(--s-6);
+}
+
+.prose h2 {
+  margin-top: 2.6em;
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: var(--t-l);
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+}
+
+.prose h2::before {
+  content: '';
+  display: block;
+  width: 2rem;
+  border-top: var(--hairline) solid var(--line-2);
+  margin-bottom: 0.7em;
+}
+
+.prose h3 {
+  margin-top: 2em;
+  font-size: var(--t-m);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.prose h4 {
+  margin-top: 1.8em;
+  font-size: var(--t-body);
+  font-weight: 600;
+}
+
+.prose a {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  text-decoration-color: var(--line-2);
+  transition: text-decoration-color var(--d-fast) var(--ease-out);
+}
+
+.prose a:hover {
+  text-decoration-color: var(--fg);
+}
+
+.prose strong {
+  font-weight: 600;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.4em;
+}
+
+.prose li + li {
+  margin-top: 0.35em;
+}
+
+.prose li > ul,
+.prose li > ol {
+  margin-top: 0.35em;
+}
+
+.prose blockquote {
+  margin-block: 1.6em;
+  padding-left: 1.25em;
+  border-left: 2px solid var(--line-2);
+  color: var(--fg-2);
+}
+
+.prose blockquote > * + * {
+  margin-top: 1em;
+}
+
+.prose hr {
+  margin-block: 3em;
+  border: 0;
+  border-top: var(--hairline) solid var(--line);
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-s);
+  line-height: 1.6;
+}
+
+.prose th,
+.prose td {
+  padding: 0.6em 0.8em;
+  border-bottom: var(--hairline) solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose thead th {
+  border-bottom-color: var(--line-2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.prose tbody tr:hover {
+  background: var(--bg-2);
+}
+
+.prose img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-block: 1.8em;
+  border: var(--hairline) solid var(--line);
+  cursor: zoom-in;
+}
+
+/* 行内代码 */
+.prose :not(pre) > code {
+  padding: 0.1em 0.35em;
+  border: var(--hairline) solid var(--line);
+  background: var(--bg-2);
+  font-family: var(--f-mono);
+  font-size: 0.88em;
+  word-break: break-word;
+}
+
+/* ── 代码块 ─────────────────────────────────────────────────────────────
+   结构由 scripts/copy.ts 补成：
+     <div class="code" style="--lang:'C'"><div class="code__bar">…</div><pre class="astro-code">…</pre></div>
+   没有 JS 时 pre 自己带边框，仍然可读。 */
+.prose pre {
+  margin-block: 1.8em;
+  border: var(--hairline) solid var(--line);
+  overflow-x: auto;
+  font-family: var(--f-mono);
+  font-size: 0.875rem;
+  line-height: 1.7;
+  tab-size: 2;
+}
+
+.code {
+  margin-block: 1.8em;
+  border: var(--hairline) solid var(--line);
+}
+
+.code pre {
+  margin: 0;
+  border: 0;
+}
+
+.code__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  height: 2rem;
+  padding-inline: var(--s-3);
+  border-bottom: var(--hairline) solid var(--line);
+  background: var(--bg-2);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.code__lang {
+  margin-right: auto;
+}
+
+.code__copy {
+  padding: 0.15em 0.6em;
+  border: var(--hairline) solid var(--line-2);
+  background: none;
+  color: var(--fg-2);
+  font: inherit;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: color var(--d-fast) var(--ease-out), border-color var(--d-fast) var(--ease-out);
+}
+
+.code__copy:hover {
+  color: var(--fg);
+  border-color: var(--fg);
+}
+
+.code__copy[data-done] {
+  color: var(--bg);
+  background: var(--fg);
+  border-color: var(--fg);
+}
+
+/* ── 代码折叠：超过 5 行时在第 5 行淡出，末尾居中一个 Unfold ─────────────
+   裁剪高度由 reading.ts 按真实行高算出来写进 --code-fold-h，
+   所以换字号、换字体都不会错位。 */
+.code {
+  position: relative;
+}
+
+.code__body {
+  overflow: hidden;
+}
+
+.code[data-fold='true'] .code__body {
+  max-height: var(--code-fold-h, 12rem);
+}
+
+.code__fade {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  bottom: 0;
+  height: 4.5rem;
+  background: linear-gradient(to bottom, transparent, var(--code-solid));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--d-base) var(--ease-out);
+}
+
+.code[data-fold='true'] .code__fade {
+  opacity: 1;
+}
+
+.code__fold {
+  position: absolute;
+  left: 50%;
+  bottom: var(--s-3);
+  transform: translateX(-50%);
+  padding: 0.3em 1.2em;
+  border: var(--hairline) solid var(--line-2);
+  background: var(--code-solid);
+  color: var(--fg);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--d-fast) var(--ease-out), background var(--d-fast) var(--ease-out),
+    border-color var(--d-fast) var(--ease-out);
+}
+
+.code__fold:hover {
+  background: var(--fg);
+  border-color: var(--fg);
+  color: var(--bg);
+}
+
+/* 折叠按钮要避开底部的横向滚动条 */
+.code[data-xscroll] .code__fold {
+  bottom: calc(var(--s-3) + 16px);
+}
+
+/* ── 横向滚动条代理 ─────────────────────────────────────────────────────
+   sticky bottom:0 —— 代码块还在视口里的时候，这条永远贴在窗口下沿，
+   不用滚到代码块末尾才找得到滚动条。只有内容真的溢出时才会出现（JS 判定）。 */
+.code__x {
+  display: none;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  height: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--code-solid);
+  border-top: var(--hairline) solid var(--line-2);
+}
+
+.code[data-xscroll] .code__x {
+  display: block;
+}
+
+.code__x-inner {
+  height: 1px;
+}
+
+/* 有代理条的时候隐藏 pre 自带的横向滚动条，免得同一屏出现两条 */
+.code[data-xscroll] .astro-code {
+  scrollbar-width: none;
+}
+
+.code[data-xscroll] .astro-code::-webkit-scrollbar {
+  height: 0;
+  display: none;
+}
+
+/* 行号：CSS counter，不进 DOM */
+.astro-code code {
+  display: block;
+  /* 关键：容器用 normal，行用 pre —— 否则 shiki 输出里 <span class="line"> 之间的
+     那个换行会被当成"空行"渲染出来，代码看起来行距翻倍 */
+  white-space: normal;
+  padding-block: var(--s-4);
+  counter-reset: bbs-line;
+}
+
+.astro-code .line {
+  display: block;
+  white-space: pre;
+  padding-left: 3.5rem;
+  padding-right: var(--s-4);
+}
+
+.astro-code .line::before {
+  counter-increment: bbs-line;
+  content: counter(bbs-line);
+  display: inline-block;
+  width: 2.25rem;
+  margin-left: -2.75rem;
+  padding-right: 0.5rem;
+  text-align: right;
+  color: var(--fg-3);
+  opacity: 0.55;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 双主题：默认用浅色那一套，data-theme=dark 时整体切到 dark 变量 */
+[data-theme='dark'] .astro-code,
+[data-theme='dark'] .astro-code span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+
+[data-theme='light'] .astro-code {
+  border-color: var(--line);
+}
+
+/* ── 提示框（原来 Material 的 !!! tip） ────────────────────────────────── */
+.prose .callout {
+  margin-block: 1.8em;
+  padding: 1.1em 1.25em;
+  border: var(--hairline) solid var(--line-2);
+  border-left-width: 3px;
+  background: var(--bg-2);
+}
+
+.prose .callout[data-title]::before {
+  content: attr(data-title);
+  display: block;
+  margin-bottom: 0.5em;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+
+.prose .callout--tip {
+  border-left-color: var(--fg);
+}
+
+.prose .callout > * + * {
+  margin-top: 0.8em;
+}
+
+/* ── 折叠问答（原来 Material 的 ??? question） ────────────────────────── */
+.prose details {
+  margin-block: 1.2em;
+  border: var(--hairline) solid var(--line);
+  background: var(--bg-2);
+}
+
+.prose summary {
+  padding: 0.9em 1.1em;
+  cursor: pointer;
+  font-weight: 500;
+  list-style: none;
+}
+
+.prose summary::-webkit-details-marker {
+  display: none;
+}
+
+.prose summary::after {
+  content: '+';
+  float: right;
+  font-family: var(--f-mono);
+  color: var(--fg-3);
+}
+
+.prose details[open] summary {
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.prose details[open] summary::after {
+  content: '−';
+}
+
+.prose details > *:not(summary) {
+  margin-inline: 1.1em;
+}
+
+.prose details > *:last-child {
+  margin-bottom: 1.1em;
+}
+
+/* ── 上一篇 / 下一篇 ──────────────────────────────────────────────────── */
+/* ── 上一篇 / 下一篇 ────────────────────────────────────────────────────
+   space-between：两个标题分别贴住正文栏的左右边界，而不是挤在中间。 */
+.prevnext {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4) var(--s-8);
+  width: 100%;
+  margin-top: var(--s-8);
+  padding-top: var(--s-5);
+  border-top: var(--hairline) solid var(--line);
+}
+
+.prevnext a {
+  display: block;
+  padding: var(--s-3) 0;
+}
+
+.prevnext a:hover {
+  text-decoration: none;
+}
+
+.prevnext__label {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.prevnext__title {
+  display: block;
+  margin-top: var(--s-1);
+  font-family: var(--f-display);
+  font-size: var(--t-m);
+  line-height: 1.3;
+  color: var(--fg);
+}
+
+.prevnext a:hover .prevnext__title {
+  border-bottom: var(--hairline) solid var(--line-2);
+}
+
+.prevnext__next {
+  text-align: right;
+}
+
+/* ── 分页 ─────────────────────────────────────────────────────────────── */
+.pager {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--s-4);
+  margin-top: var(--s-6);
+  padding-top: var(--s-4);
+  border-top: var(--hairline) solid var(--line);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.pager a {
+  color: var(--fg-2);
+}
+
+.pager a:last-child {
+  text-align: right;
+}
+
+.pager__now {
+  color: var(--fg-3);
+}
+
+/* ── 评论 ───────────────────────────────────────────────────────────── */
+.comments {
+  margin-top: var(--s-8);
+  padding-top: var(--s-5);
+  border-top: var(--hairline) solid var(--line);
+}
+
+.comments__head {
+  margin: 0 0 var(--s-4);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.comments__note {
+  margin: 0;
+  padding: var(--s-5);
+  border: 1px dashed var(--line);
+  font-size: var(--t-s);
+  color: var(--fg-3);
+}
+
+/* ── 图片灯箱 ─────────────────────────────────────────────────────────── */
+.lightbox {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  margin: 0;
+  padding: var(--s-6);
+  border: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.lightbox::backdrop {
+  background: rgba(0, 0, 0, 0.94);
+}
+
+.lightbox img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: calc(100vh - 2 * var(--s-6));
+  margin: auto;
+  border: var(--hairline) solid var(--line-2);
+  cursor: zoom-out;
+}
+
+.lightbox__close {
+  position: fixed;
+  top: var(--s-4);
+  right: var(--s-4);
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: var(--hairline) solid var(--line-2);
+  background: var(--bg);
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+/* ── 草稿提示条 ───────────────────────────────────────────────────────── */
+.draftbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  padding: var(--s-2) var(--s-4);
+  background: var(--fg);
+  color: var(--bg);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* ── 小屏 ─────────────────────────────────────────────────────────────── */
+/* 目录 14rem + 正文 42rem + 边距 ≈ 990px 才能并存。
+   之前这条断点写到 1278px，等于把 Windows 125% 缩放下的 1440px 屏幕
+   （CSS 宽度约 1152）直接挡在门外 —— 那就是"看不到目录"的真正原因。 */
+@media (max-width: 61.9rem) {
+  .toc-panel {
+    display: none;
+  }
+
+  /* 目录没了，正文把右侧的留白还回去 */
+  .page--wide {
+    width: min(100% - 2 * var(--s-5), 84rem);
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 47.9rem) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: var(--s-1);
+  }
+
+  .prevnext {
+    grid-template-columns: 1fr;
+  }
+
+  .prevnext__next {
+    text-align: left;
+  }
+
+  .prose {
+    font-size: 1rem;
+  }
+
+  .astro-code .line {
+    padding-left: 2.75rem;
+  }
+
+  .astro-code .line::before {
+    width: 1.75rem;
+    margin-left: -2rem;
+  }
+}

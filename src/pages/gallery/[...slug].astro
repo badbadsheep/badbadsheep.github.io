@@ -1,0 +1,48 @@
+---
+/** 作品详情。与文章页共用阅读版式，但没有评论区，元信息换成媒介 / 年份 / 外链。 */
+import { render } from 'astro:content';
+import Reading from '../../layouts/Reading.astro';
+import Toc from '../../components/reading/Toc.astro';
+import { sectionByKey } from '../../data/sections';
+import { getWorks } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const works = await getWorks();
+  return works.map((work) => ({ params: { slug: work.id }, props: { work } }));
+}
+
+const { work } = Astro.props;
+const section = sectionByKey('gallery')!;
+const { Content, headings } = await render(work.entry);
+---
+
+<Reading title={work.title} description={work.summary} wide>
+  <article class="article">
+    <div class="article__main">
+      <header class="article__head">
+        <a class="article__kicker" href={section.url}>{section.mark}</a>
+        <h1 class="article__title">{work.title}</h1>
+        <div class="article__meta">
+          <span>{work.categoryName}</span>
+          <span>{work.year}</span>
+          {work.medium && <span>{work.medium}</span>}
+          {
+            work.link && (
+              <a href={work.link} target="_blank" rel="noopener">
+                去看看 →
+              </a>
+            )
+          }
+        </div>
+      </header>
+
+      {work.summary && <p class="lead">{work.summary}</p>}
+
+      <div class="prose">
+        <Content />
+      </div>
+    </div>
+
+    <Toc headings={headings} />
+  </article>
+</Reading>

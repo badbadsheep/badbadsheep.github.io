@@ -1,0 +1,51 @@
+name: 站点问题
+description: 页面打不开、排版错乱、链接失效、内容显示不对
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        这是个人站，只有我维护。报错时请尽量把「哪个地址、什么环境下、看到什么」写全 ——
+        写全了我一次就能复现，写不全就只能来回问。
+
+        如果是**文章内容**本身的问题（错别字、事实错误），直接发邮件到 3360421858@qq.com 更快。
+
+  - type: input
+    id: url
+    attributes:
+      label: 出问题的页面地址
+      placeholder: https://badbadsheep.github.io/notes/xxx/
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 看到的现象
+      description: 期望是什么、实际是什么。有截图就贴截图。
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: 浏览器与系统
+      placeholder: Chrome 141 / Windows 11
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 大概是哪一块
+      options:
+        - 页面打不开 / 404
+        - 排版错乱 / 字体不对
+        - 代码块与复制按钮
+        - 图片 / 灯箱
+        - 目录 / 上下篇
+        - 搜索
+        - 评论（giscus）
+        - 说不清
+    validations:
+      required: false

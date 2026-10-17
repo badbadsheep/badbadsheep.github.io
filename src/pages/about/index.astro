@@ -1,0 +1,20 @@
+---
+import { render } from 'astro:content';
+import Reading from '../../layouts/Reading.astro';
+import { getPage } from '../../lib/content';
+
+const page = await getPage('about');
+if (!page) throw new Error('缺少 src/content/pages/about.md');
+const { Content } = await render(page);
+---
+
+<Reading title={page.data.title} description={page.data.desc}>
+  <header class="page-head">
+    <p class="page-head__kicker">Info</p>
+    <h1 class="page-head__title">{page.data.title}</h1>
+  </header>
+
+  <div class="prose">
+    <Content />
+  </div>
+</Reading>

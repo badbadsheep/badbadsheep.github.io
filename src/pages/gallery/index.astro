@@ -1,0 +1,28 @@
+---
+/** 影像栏目的入口：门面版式 + 气泡墙 + 四分类筛选。 */
+import Facade from '../../layouts/Facade.astro';
+import GalleryWall from '../../components/gallery/GalleryWall.astro';
+import { sectionByKey } from '../../data/sections';
+import { countByCategory, getWorks } from '../../lib/content';
+
+const section = sectionByKey('gallery')!;
+const works = await getWorks();
+const counts = countByCategory(works);
+---
+
+<Facade title={section.name} description={section.desc}>
+  <div class="wrap facade-page">
+    {/* 栏目页左上角：回到主页（与文章页底部同一个组件） */}
+    <a class="up-link up-link--top" href="/">
+      <span aria-hidden="true">↑</span> 回到上一级
+    </a>
+
+    <header class="facade-head">
+      <p class="facade-head__kicker">{section.index} / {section.name}</p>
+      <h1 class="facade-head__mark">{section.mark}</h1>
+      <p class="facade-head__desc">{section.desc}</p>
+    </header>
+
+    <GalleryWall works={works} counts={counts} />
+  </div>
+</Facade>

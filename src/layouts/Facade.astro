@@ -1,0 +1,18 @@
+---
+/** 门面布局：首页与影像页。整体锁黑底，带门面版页脚。 */
+import Base from './Base.astro';
+import '../styles/facade.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** 首页：第一屏吸附 + 导航先隐身 */
+  home?: boolean;
+}
+
+const { title, description, home = false } = Astro.props;
+---
+
+<Base title={title} description={description} facade home={home} variant="facade">
+  <slot />
+</Base>

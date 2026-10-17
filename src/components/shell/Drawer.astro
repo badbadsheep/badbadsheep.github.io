@@ -1,0 +1,77 @@
+---
+/**
+ * 栏目抽屉。
+ * 结构固定成三段：标题条（不滚）+ 可滚列表 + 底部小字联系邮箱。
+ * "标题条不滚"这点是硬要求：.drawer__head 显式 flex:0 0 auto，只有 .drawer__body 滚。
+ */
+import { SECTIONS } from '../../data/sections';
+import { SITE } from '../../data/site';
+
+interface Props {
+  counts: Record<string, number>;
+}
+
+const { counts } = Astro.props;
+
+/** 「其他」：索引类入口 + 外站。RSS 放这里 —— 它确实有用，只是别指望人点开能看懂 XML。 */
+const others = [
+  { href: '/about/', label: '关于' },
+  { href: '/archive/', label: '归档' },
+  { href: '/credits/', label: '致谢' },
+  { href: '/feed_rss_created.xml', label: 'RSS' },
+  { href: `https://github.com/${SITE.github}`, label: 'GitHub', external: true },
+];
+---
+
+<div class="drawer" id="bbs-drawer" data-drawer hidden>
+  <div class="drawer__scrim" data-drawer-close></div>
+  <aside class="drawer__panel" aria-labelledby="bbs-drawer-title">
+    <div class="drawer__head">
+      <p class="drawer__title" id="bbs-drawer-title">栏目</p>
+      <button class="drawer__close" type="button" data-drawer-close aria-label="关闭">
+        <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+          <path d="M3 3l10 10M13 3L3 13" fill="none" stroke="currentColor" stroke-width="1.3" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="drawer__body">
+      {/* 回首页：放在四个栏目的上方，第一眼就能找到 */}
+      <a class="drawer__home" href="/">
+        <span aria-hidden="true">←</span> 回到主页
+      </a>
+
+      <ul class="drawer__list">
+        {
+          SECTIONS.map((s) => (
+            <li>
+              <a href={s.url}>
+                <span class="drawer__item-mark">{s.mark}</span>
+                <span class="drawer__item-name">{s.name}</span>
+                {counts[s.key] > 0 && <span class="drawer__item-count">{counts[s.key]}</span>}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+
+      <p class="drawer__label">其他</p>
+      <ul class="drawer__list">
+        {
+          others.map((l) => (
+            <li>
+              <a href={l.href} rel={l.external ? 'me noopener' : undefined} target={l.external ? '_blank' : undefined}>
+                <span class="drawer__item-name">{l.label}</span>
+                {l.external && (
+                  <span class="drawer__item-count" aria-hidden="true">
+                    ↗
+                  </span>
+                )}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </aside>
+</div>
