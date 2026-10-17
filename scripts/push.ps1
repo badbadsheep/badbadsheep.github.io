@@ -17,6 +17,10 @@
 .PARAMETER SkipVerify
     跳过第 2 步的自检。只建议在改错别字、改文档时用。
 
+.PARAMETER Force
+    远程仓库和本地没有共同祖先时（拿老仓库当远程），允许用本地历史覆盖远程 main。
+    走的是 --force-with-lease，远程万一又变了会拒绝，不会盖掉别人的新提交。
+
 .PARAMETER RemoteUrl
     首次推送时直接指定远程地址，跳过交互提问。
 
@@ -36,6 +40,8 @@ param(
     [string]$Message,
 
     [switch]$SkipVerify,
+
+    [switch]$Force,
 
     [string]$RemoteUrl
 )
@@ -182,23 +188,68 @@ if ($changes.Count -eq 0) {
 
 Write-Section '4/4' '推送'
 
-git push -u origin main
-$pushCode = $LASTEXITCODE
-
-if ($pushCode -ne 0) {
-    # 远程有别人的提交：rebase 一次再推，冲突就交给人工
-    Write-Warn '推送被拒绝，先和远程同步（pull --rebase）再试一次'
-    git pull --rebase origin main
-    if ($LASTEXITCODE -ne 0) {
-        Write-Bad '同步失败，说明有冲突需要手动解决：'
-        Write-Bad '  git status  →  改完冲突文件  →  git add <文件>  →  git rebase --continue'
-        Write-Bad '  想放弃这次同步：git rebase --abort'
-        Stop-Task 'rebase 没完成。'
+# 上一次的 rebase / merge 没收尾时，不要在上面继续叠操作
+foreach ($state in '.git\rebase-merge', '.git\rebase-apply', '.git\MERGE_HEAD') {
+    if (Test-Path -LiteralPath (Join-Path $Root $state)) {
+        Write-Bad '这个仓库里还有一次没做完的 rebase / merge。'
+        Write-Bad '  看现场：git status'
+        Write-Bad '  放弃它：git rebase --abort   （或 git merge --abort）'
+        Stop-Task '先把上次的冲突处理完。'
     }
+}
+
+# 远程已有 main 时，先看两边是不是同一个祖先。
+# 不是的话（最典型：把老仓库当成了远程）绝对不能 rebase ——
+# 那会把本地每个提交逐个叠到无关历史上，每个都撞冲突，仓库直接卡死。
+git fetch --quiet origin main 2>$null
+$remoteLine = [string](git ls-remote --heads origin main 2>$null)
+$hasRemoteBranch = -not [string]::IsNullOrWhiteSpace($remoteLine)
+
+$unrelated = $false
+if ($hasRemoteBranch) {
+    git merge-base main origin/main 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) { $unrelated = $true }
+}
+
+if ($unrelated -and -not $Force) {
+    Write-Bad '远程的 main 和本地没有共同祖先 —— 这个地址上放的是一个无关的旧仓库。'
+    Write-Bad ''
+    Write-Bad '  三种走法，选一个：'
+    Write-Bad '  1) 旧仓库不要了，用新站覆盖它（旧内容本地还留着）：'
+    Write-Bad '       push.cmd -Force'
+    Write-Bad '  2) 换一个空仓库（GitHub 上新建，别勾 README）：'
+    Write-Bad '       git remote set-url origin <新地址>'
+    Write-Bad '  3) 两个历史都留着（旧文件会残留在仓库里，得手动删）：'
+    Write-Bad '       git pull --allow-unrelated-histories origin main'
+    Stop-Task '远程历史与本地无关，已停下，什么都没推。'
+}
+
+if ($unrelated) {
+    Write-Warn '远程历史与本地无关：按 -Force 用本地覆盖远程 main'
+    git push --force-with-lease -u origin main
+    if ($LASTEXITCODE -ne 0) {
+        Write-Bad '覆盖失败。如果提示 stale info，说明远程刚又被改过，重跑一次即可。'
+        Stop-Task '推送失败。'
+    }
+} else {
     git push -u origin main
     if ($LASTEXITCODE -ne 0) {
-        Write-Bad '还是推不上去。把上面 git 的原文发我，或对照 README 第十节 10.5 的报错表。'
-        Stop-Task '推送失败。'
+        # 远程有新的提交（同一祖先）：同步一次再推，冲突就交给人工
+        Write-Warn '推送被拒绝，先和远程同步（pull --rebase）再试一次'
+        git pull --rebase origin main
+        if ($LASTEXITCODE -ne 0) {
+            Write-Bad '同步失败，是有冲突需要手动解决：'
+            Write-Bad '  git status  →  改完冲突文件  →  git add <文件>  →  git rebase --continue'
+            Write-Bad '  想放弃这次同步：git rebase --abort'
+            Write-Bad '  （如果这时候看到 "The batch file cannot be found"，是 rebase 把 push.cmd'
+            Write-Bad '    自己切走了，不影响任何东西，按上面的命令处理冲突就行。）'
+            Stop-Task 'rebase 没完成。'
+        }
+        git push -u origin main
+        if ($LASTEXITCODE -ne 0) {
+            Write-Bad '还是推不上去。把上面 git 的原文发我，或对照 README 第十节 10.5 的报错表。'
+            Stop-Task '推送失败。'
+        }
     }
 }
 

@@ -151,7 +151,9 @@ export default defineConfig({
 
   integrations: [
     sitemap({
-      filter: (page) => !page.includes('/404'),
+      // 404 和 /proto/ 下的原型页都不进 sitemap
+      // （原型页自己带 noindex，进 sitemap 等于给搜索引擎递矛盾信号）
+      filter: (page) => !page.includes('/404') && !page.includes('/proto/'),
     }),
     liveFontSubset(),
   ],

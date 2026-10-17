@@ -253,6 +253,11 @@ pnpm images    # 只查图片引用（不用 build，秒出）
    `https://github.com/badbadsheep/badbadsheep.github.io.git`。
    蹦出来的浏览器窗口是 GitHub 登录（Git for Windows 自带的凭据管理器），登一次以后不再问。
 
+> ⚠️ **那个地址上如果已经有旧仓库**（比如你以前的 MkDocs 站），它的历史和这个工程**毫无共同祖先**。
+> 直接把新站推上去会被拒，而且两边每个同名文件都会撞冲突（`.gitattributes`、`README.md`、`.gitignore`…）。
+> `push.cmd` 现在会**先检测**这件事并在推之前停下，告诉你三条路；确认旧站不要了，用
+> `push.cmd -Force` 覆盖（`--force-with-lease`，远程万一刚被改过会拒绝，不会盖掉别人的新提交）。
+
 手动做，等价于：
 
 ```powershell
@@ -266,6 +271,7 @@ git push -u origin main
 .\push.cmd                     # 自检 → 提交 → 推送
 .\push.cmd "内容：新增一篇"     # 自定义提交信息
 .\push.cmd -SkipVerify         # 只改了错别字时，跳过自检
+.\push.cmd -Force              # 远程是无关的旧仓库时，用本地覆盖它
 pnpm push                      # 和双击等价
 ```
 
@@ -276,7 +282,7 @@ pnpm push                      # 和双击等价
 | 1 | 查 git / 仓库 / 分支 / 提交身份 / 远程地址，能补的就地补上 | 告诉你缺哪一项 |
 | 2 | `pnpm verify`（字体 → 图片 → 类型 → 构建 → 死链） | 打印失败那一步，直接停 |
 | 3 | 把改动提交成一个 commit，信息默认 `更新：2026-10-17 22:10` | — |
-| 4 | `git push`；远程有别人的提交就自动 `pull --rebase` 再试一次 | 打印 git 原文 + 排查建议 |
+| 4 | 先确认远程与本地同源；同源才 `push`，被抢先就 `pull --rebase` 重试一次 | 打印 git 原文 + 三条出路；**不同源直接停**，不 rebase |
 
 `push.cmd` 只是个 ASCII 的壳子 —— **中文不要写进 `.cmd`**：cmd.exe 用控制台代码页解码批处理，
 代码页一变中文就散架。真逻辑在 `scripts/push.ps1`，那个文件**必须存成 UTF-8 with BOM**
@@ -313,7 +319,10 @@ pnpm push                      # 和双击等价
 |---|---|
 | `fatal: not a git repository` | 不在工程目录，或仓库没初始化。双击 `push.cmd` 会自动处理 |
 | `Authentication failed` / `403` | 凭据过期。控制面板 → 凭据管理器 → Windows 凭据 → 删掉 `git:https://github.com`，再推一次重新登录 |
-| `Updates were rejected because the remote contains work…` | 远程有别人的提交。脚本会自动 rebase 重试；还失败就手动解决冲突 |
+| `Updates were rejected because the remote contains work…` | 远程有别人的提交（同一祖先）。脚本会自动 rebase 重试；还失败就手动解决冲突 |
+| 脚本报「远程的 main 和本地没有共同祖先」 | 这个地址上是个无关的旧仓库。旧站不要了用 `push.cmd -Force`；想留着旧历史就 `git pull --allow-unrelated-histories origin main` |
+| 仓库卡在 rebase／一堆 `AA` 冲突 | 上次 rebase 没做完。`git rebase --abort` 回到 rebase 之前，再决定走法；不要在上面继续叠操作 |
+| `The batch file cannot be found.` | rebase 重写了工作区，把正在运行的 `push.cmd` 自己切走了。**不是错误**，真正要看的是它上面那几行冲突提示 |
 | `Multiple versions of pnpm specified` | `deploy.yml` 里又写了 `version:`。pnpm 版本只由 `package.json` 的 `packageManager` 决定 |
 | `Invalid workflow file … No event triggers defined in 'on'` | `on:` 被写坏了，见 10.4 |
 | `Deploy` 在 `configure-pages` 报错 | Pages 的 Source 还没设成 GitHub Actions，见 10.3 |
