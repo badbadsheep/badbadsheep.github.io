@@ -55,6 +55,7 @@ export function mount(root: HTMLElement, opts: { forcePlay?: boolean } = {}): vo
     return;
   }
   sessionStorage.setItem('bbs:hero-played', '1');
+  document.body.dataset.phase = 'playing';
 
   // ── 画布层 ────────────────────────────────────────────────────────────
   const trail = root.querySelector<HTMLCanvasElement>('[data-trail]')!;
@@ -285,7 +286,12 @@ export function mount(root: HTMLElement, opts: { forcePlay?: boolean } = {}): vo
       // 撞墙：深度够就反弹+继续画；深度不够就分裂
       const hitX = p.x <= 0 || p.x >= W;
       const hitY = p.y <= 0 || p.y >= H;
-      if (hitX || hitY) {
+      /**
+       * 只有"演出中"才和墙碰撞、分裂。
+       * 反相之后的自由落体必须**穿过墙掉出屏幕**，否则粒子到最深处只会
+       * 一直反弹/分裂，页面永远收不了尾（踩过这个坑：卡在 inverted 不结束）。
+       */
+      if ((hitX || hitY) && !gravityOn) {
         p.x = Math.max(0, Math.min(W, p.x));
         p.y = Math.max(0, Math.min(H, p.y));
         if (p.depth < MAX_SPLIT_DEPTH) {
@@ -547,6 +553,12 @@ export function mount(root: HTMLElement, opts: { forcePlay?: boolean } = {}): vo
   }
 
   function advanceWriting(dt: number) {
+    /**
+     * 遮罩画布还没就绪（字体还在加载）时**不要推进时间**。
+     * 否则字一加载完，writeElapsed 已经跑到终点，整行字会瞬间蹦出来。
+     */
+    if (!maskCanvas || !glyphCanvas || !wordW) return;
+
     writeElapsed += dt;
     const mainEnd = T.writeMain;
     const pEnd = mainEnd + T.writeP;
@@ -619,6 +631,7 @@ export function mount(root: HTMLElement, opts: { forcePlay?: boolean } = {}): vo
     trail.style.opacity = '0';
     tagline.classList.add('on');
     below.classList.add('on');
+    document.body.dataset.phase = 'final';
   }
 
   function showFinal() {

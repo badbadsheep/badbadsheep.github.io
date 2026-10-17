@@ -73,12 +73,8 @@
   --art-ink: 255, 255, 255;
   --art-line: 255, 255, 255;
 
-  /* 首页四屏网格（scripts/grid 读这三个值：
-     颜色、次线透明度、主线透明度 —— 后两个只有 B 版「工程图纸」用得上） */
-  --grid-ink: 255, 255, 255;
-  --grid-alpha: 0.2;
-  --grid-alpha-strong: 0.36;
-  --grid-alpha-node: 0.42;
+  /* 首页四屏网格：静态方形底纹的格子尺寸（线本身是一段内联 SVG，见 facade.css） */
+  --grid-cell: 56px;
 
   /* 字体栈 */
   --f-display: 'Instrument Serif', 'Smiley Sans', 'Songti SC', 'STSong', serif;
@@ -174,10 +170,7 @@
   --art-ink: 0, 0, 0;
   --art-line: 0, 0, 0;
 
-  --grid-ink: 0, 0, 0;
-  --grid-alpha: 0.2;
-  --grid-alpha-strong: 0.36;
-  --grid-alpha-node: 0.42;
+  --grid-cell: 56px;
 
   --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--fg);
 }
