@@ -28,7 +28,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%HERE%scripts\push.ps1" %*
 set "RC=%ERRORLEVEL%"
 
 echo.
-if "%RC%"=="0" echo   Done. Pushed to GitHub.
+if "%RC%"=="0" echo   dDone. Pushed to GitHub.
 if not "%RC%"=="0" echo   Failed above. Nothing was pushed.
 
 if "%~1"=="" pause

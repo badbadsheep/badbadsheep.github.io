@@ -110,11 +110,13 @@ html.is-home {
   will-change: transform;
 }
 
-/* 线宽随图缩放：cover 在 1440×900 下把图放大 0.681 倍，
-   2.3 × 0.681 ≈ 1.57px，就是你要的粗细。图形按 PSD 的比例略粗一档。 */
+/* 彩色线固定 1.8 CSS px：用 non-scaling-stroke，线宽不跟图的缩放走，
+   任何窗口宽度下看上去都是同一条细线（否则 1440 是 1.6px、1920 就变成 1.9px）。
+   方框和圆仍然随图缩放，按 PSD 的比例略粗一档。 */
 .hero__art line {
   fill: none;
-  stroke-width: 2.3;
+  stroke-width: 1.9;
+  vector-effect: non-scaling-stroke;
 }
 
 .hero__art .is-cyan {

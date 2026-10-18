@@ -7,7 +7,7 @@ draft: false
 summary: C需慢慢写，心急则报错。
 ---
 
- C需慢慢磨，心急则报错。
+ C需慢慢磨，心急则报错
 
 ## Introduction
 

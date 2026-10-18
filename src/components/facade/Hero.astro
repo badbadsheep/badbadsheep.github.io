@@ -40,15 +40,22 @@ const [first, ...rest] = ['badbad', 'sheep'];
 
   <script>
     import { mountHero } from '../../scripts/art';
+
     mountHero();
 
     /**
-     * 指针靠近时，几何构图轻轻向外推开 —— 屏幕上最多 5px。
-     * 每条线、方框、圆都是独立元素，各自按"离指针越近推得越多"往反方向让开；
-     * 点阵整体往反方向偏一点，形成轻微视差。
+     * 首屏两套指针交互：
      *
-     * 注意：SVG 里的位移单位是 viewBox 单位，不是 CSS px（这张图在 1440 宽下
-     * 被缩到 0.58 倍）。所以先按屏幕上的 5px 算出来，再除以缩放比换回去。
+     * ① 推开：几何构图轻轻向外让开，屏幕上最多 5px。
+     *    每条线、方框、圆各自按"离指针越近推得越多"往反方向移位；点阵整体做轻微视差。
+     *    注意：SVG 里的位移单位是 viewBox 单位，不是 CSS px（1440 宽下这张图被缩到
+     *    0.681 倍），所以先按屏幕上的 5px 算，再除以缩放比换回去。
+     *
+     * ② 收缩：指针压到某条彩色线上，那条线从两端往指针下的那一点收回，0.5 秒收成一点，
+     *    线本身的位置不动；指针一挪开，两端原路伸回原来的长度。
+     *    · A 点 = 指针在该线上的垂足（跟着指针滑）
+     *    · 同一条线上的多条线一起收
+     *    · 命中判定永远按**原始几何**算 —— 否则线收成点之后就再也点不到了
      */
     const svg = document.querySelector<SVGSVGElement>('.hero__art');
     const geo = document.querySelector<HTMLElement>('.hero__geo');
@@ -56,6 +63,74 @@ const [first, ...rest] = ['badbad', 'sheep'];
 
     if (svg && geo && hero && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       const parts = [...svg.querySelectorAll<SVGGraphicsElement>('line, path')];
+      const lineEls = [...svg.querySelectorAll<SVGLineElement>('.hero__art-lines line')];
+
+      /** 收缩时长与命中半径（屏幕 px）。线宽固定 1.8px，命中带 ±5px。 */
+      const COL_MS = 400;
+      const TOL_PX = 6;
+
+      /** 每条线的原始端点 + 收缩进度（0 完整 → 1 收成一点）+ 最近一次命中的 A 点 */
+      const col = lineEls.map((el) => ({
+        x1: Number(el.getAttribute('x1')),
+        y1: Number(el.getAttribute('y1')),
+        x2: Number(el.getAttribute('x2')),
+        y2: Number(el.getAttribute('y2')),
+        p: 0,
+        ax: 0,
+        ay: 0,
+        hit: false,
+      }));
+
+      let frame = 0;
+      let prev = 0;
+
+      /** 把每条线按当前进度画出来：两端同时朝 A 点收 */
+      const tick = (now: number) => {
+        const dt = prev ? Math.min(64, now - prev) : 16;
+        prev = now;
+        let busy = false;
+
+        lineEls.forEach((el, i) => {
+          const s = col[i];
+          const goal = s.hit ? 1 : 0;
+
+          if (Math.abs(s.p - goal) > 0.0001) {
+            const step = dt / COL_MS; // 走满 0→1 正好 0.5 秒
+            s.p = s.p < goal ? Math.min(goal, s.p + step) : Math.max(goal, s.p - step);
+            busy = true;
+          }
+
+          if (s.p <= 0) {
+            el.setAttribute('x1', String(s.x1));
+            el.setAttribute('y1', String(s.y1));
+            el.setAttribute('x2', String(s.x2));
+            el.setAttribute('y2', String(s.y2));
+            return;
+          }
+
+          // smoothstep：收和放都不生硬
+          const k = s.p * s.p * (3 - 2 * s.p);
+          el.setAttribute('x1', String(s.x1 + (s.ax - s.x1) * k));
+          el.setAttribute('y1', String(s.y1 + (s.ay - s.y1) * k));
+          el.setAttribute('x2', String(s.x2 + (s.ax - s.x2) * k));
+          el.setAttribute('y2', String(s.y2 + (s.ay - s.y2) * k));
+        });
+
+        if (busy) {
+          frame = requestAnimationFrame(tick);
+        } else {
+          frame = 0;
+          prev = 0;
+        }
+      };
+
+      const kick = () => {
+        if (!frame) {
+          prev = 0;
+          frame = requestAnimationFrame(tick);
+        }
+      };
+
       let queued = 0;
 
       const onMove = (e: PointerEvent) => {
@@ -64,6 +139,8 @@ const [first, ...rest] = ['badbad', 'sheep'];
           queued = 0;
           const m = svg.getScreenCTM();
           if (!m) return;
+
+          // ① 推开
           for (const el of parts) {
             const b = el.getBBox();
             const ux = b.x + b.width / 2;
@@ -79,6 +156,31 @@ const [first, ...rest] = ['badbad', 'sheep'];
           }
           geo.style.setProperty('--grid-x', `${((e.clientX / innerWidth - 0.5) * -10).toFixed(2)}px`);
           geo.style.setProperty('--grid-y', `${((e.clientY / innerHeight - 0.5) * -10).toFixed(2)}px`);
+
+          // ② 收缩：把指针换算到 viewBox 坐标，再逐条算点到线段的距离
+          const pt = svg.createSVGPoint();
+          pt.x = e.clientX;
+          pt.y = e.clientY;
+          const u = pt.matrixTransform(m.inverse());
+          const tol = TOL_PX / (m.a || 1);
+
+          lineEls.forEach((_, i) => {
+            const s = col[i];
+            const dx = s.x2 - s.x1;
+            const dy = s.y2 - s.y1;
+            const len2 = dx * dx + dy * dy || 1;
+            const t = Math.max(0, Math.min(1, ((u.x - s.x1) * dx + (u.y - s.y1) * dy) / len2));
+            const ax = s.x1 + dx * t;
+            const ay = s.y1 + dy * t;
+            const near = Math.hypot(u.x - ax, u.y - ay) <= tol;
+            s.hit = near;
+            if (near) {
+              s.ax = ax;
+              s.ay = ay;
+            }
+          });
+
+          kick();
         });
       };
 
@@ -87,6 +189,8 @@ const [first, ...rest] = ['badbad', 'sheep'];
         parts.forEach((el) => (el.style.transform = ''));
         geo.style.setProperty('--grid-x', '0px');
         geo.style.setProperty('--grid-y', '0px');
+        col.forEach((s) => (s.hit = false));
+        kick();
       });
     }
   </script>
