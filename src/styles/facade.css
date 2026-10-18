@@ -69,77 +69,89 @@ html.is-home {
   opacity: 0.55;
 }
 
-.hero__circle {
+/* ── 首屏几何层（按 PSD 矢量重绘） ───────────────────────────────────────
+   颜色全部走 CSS 变量：深色用 PSD 里肉眼看到的颜色（图层半透明压黑底的结果），
+   浅色用图层里的原始满亮度色 —— 白底上用暗色会糊成一片。
+   线宽是 viewBox 单位：2.8 × (1440/2497) ≈ 1.6px，和你要的粗细一致。 */
+.hero__art {
   position: absolute;
-  right: -6vw;
-  top: 50%;
-  width: min(62vw, 34rem);
-  aspect-ratio: 1;
-  margin-top: -17rem;
-  border: var(--hairline) solid rgba(var(--art-line), 0.42);
-  border-radius: 50%;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+
+  --l-cyan: #206878;
+  --l-orange: #c87800;
+  --l-amber: #c89830;
+  --l-purple: #302870;
+  --l-red: #b02018;
+  --l-blue: #4858b8;
+  --l-green: #085028;
+  --l-olive: #a0b018;
+  --l-shape: #949494;
 }
 
-.hero__circle::after {
-  content: '';
-  position: absolute;
-  inset: 12%;
-  border: var(--hairline) solid rgba(var(--art-line), 0.18);
-  border-radius: 50%;
+[data-theme='light'] .hero__art {
+  --l-cyan: #44ccf4;
+  --l-orange: #fc9c00;
+  --l-amber: #fcc03c;
+  --l-purple: #3b2e7e;
+  --l-red: #dc3020;
+  --l-blue: #6070e4;
+  --l-green: #14a850;
+  --l-olive: #c8dc20;
+  --l-shape: #8c8c8c;
 }
 
-.hero__bar {
-  position: absolute;
-  background: rgba(var(--art-line), 0.16);
+/* 每条线/每个图形都是独立元素：指针靠近时可以各自被推开 */
+.hero__art line,
+.hero__art path {
+  transition: transform 240ms var(--ease-out);
+  will-change: transform;
 }
 
-.hero__bar--h1 {
-  left: 6vw;
-  right: 18vw;
-  top: 22%;
-  height: var(--hairline);
+/* 线宽随图缩放：cover 在 1440×900 下把图放大 0.681 倍，
+   2.3 × 0.681 ≈ 1.57px，就是你要的粗细。图形按 PSD 的比例略粗一档。 */
+.hero__art line {
+  fill: none;
+  stroke-width: 2.3;
 }
 
-.hero__bar--h2 {
-  left: 22vw;
-  right: 6vw;
-  top: 68%;
-  height: var(--hairline);
+.hero__art .is-cyan {
+  stroke: var(--l-cyan);
+}
+.hero__art .is-faint {
+  opacity: 0.62;
+}
+.hero__art .is-orange {
+  stroke: var(--l-orange);
+}
+.hero__art .is-amber {
+  stroke: var(--l-amber);
+}
+.hero__art .is-purple {
+  stroke: var(--l-purple);
+}
+.hero__art .is-red {
+  stroke: var(--l-red);
+}
+.hero__art .is-blue {
+  stroke: var(--l-blue);
+}
+.hero__art .is-green {
+  stroke: var(--l-green);
+}
+.hero__art .is-olive {
+  stroke: var(--l-olive);
 }
 
-.hero__bar--v1 {
-  top: 12%;
-  bottom: 26%;
-  left: 14vw;
-  width: var(--hairline);
+/* 方框 + 圆是**一条** path：一条闭合路径，右边缘断口换成圆弧 */
+.hero__art .is-shape {
+  fill: none;
+  stroke: var(--l-shape);
+  stroke-width: 3.2;
+  stroke-linejoin: round;
 }
-
-.hero__bar--v2 {
-  top: 30%;
-  bottom: 8%;
-  right: 26vw;
-  width: var(--hairline);
-}
-
-.hero__block {
-  position: absolute;
-  border: var(--hairline) solid rgba(var(--art-line), 0.22);
-}
-
-.hero__block--1 {
-  left: 18vw;
-  top: 34%;
-  width: 9rem;
-  height: 9rem;
-}
-
-.hero__block--2 {
-  right: 12vw;
-  bottom: 16%;
-  width: 5rem;
-  height: 12rem;
-}
-
 /* 文字层压在最上面，向下渐隐遮住穿过标题的细线 */
 .hero__inner {
   position: relative;
@@ -220,6 +232,11 @@ html.is-home {
 .screens {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Cpath d='M0 0H56M0 0V56' fill='none' stroke='%23fff' stroke-width='0.1'/%3E%3C/svg%3E");
   background-size: var(--grid-cell) var(--grid-cell);
+}
+
+/* 浅色主题下网格换成黑线 —— SVG 是 data URI，颜色写死在字符串里，用不了变量 */
+[data-theme='light'] .screens {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Cpath d='M0 0H56M0 0V56' fill='none' stroke='%23000' stroke-width='0.1'/%3E%3C/svg%3E");
 }
 
 .screen__inner {
@@ -621,18 +638,6 @@ html.is-home {
 
   .hero__inner {
     padding-block: var(--s-8) var(--s-6);
-  }
-
-  .hero__circle {
-    right: -20vw;
-    width: 86vw;
-    margin-top: -12rem;
-  }
-
-  .hero__bar--v1,
-  .hero__bar--v2,
-  .hero__block--2 {
-    display: none;
   }
 
   .screen {

@@ -15,6 +15,7 @@
  * 交互相关的文案与结构（大字、tagline、向下提示）在这里改。
  */
 import { SITE } from '../../data/site';
+import HeroArt from './HeroArt.astro';
 
 const [first, ...rest] = ['badbad', 'sheep'];
 ---
@@ -22,15 +23,10 @@ const [first, ...rest] = ['badbad', 'sheep'];
 <section class="hero" id="s-top" aria-labelledby="hero-title">
   <div class="hero__stage" aria-hidden="true">
     <div class="hero__geo">
-      <span class="hero__circle"></span>
-      <span class="hero__bar hero__bar--h1"></span>
-      <span class="hero__bar hero__bar--h2"></span>
-      <span class="hero__bar hero__bar--v1"></span>
-      <span class="hero__bar hero__bar--v2"></span>
-      <span class="hero__block hero__block--1"></span>
-      <span class="hero__block hero__block--2"></span>
+      {/* 点阵底：.hero__geo::before */}
+      <HeroArt />
     </div>
-    {/* 动效层画在这里。现在它是空的，CSS 构图透上来。 */}
+    {/* 动效层画在这里。现在它是空的，上面的矢量构图透上来。 */}
     <canvas class="hero__canvas" data-art></canvas>
   </div>
 
@@ -47,46 +43,48 @@ const [first, ...rest] = ['badbad', 'sheep'];
     mountHero();
 
     /**
-     * 指针靠近时，几何构图轻轻向外推开 —— 最大 5px。
-     * 每个图形按"离指针越近推得越多"往反方向让开；点阵整体往反方向偏一点，
-     * 形成轻微的视差。位移写在 translate 上，和原有定位互不干扰。
+     * 指针靠近时，几何构图轻轻向外推开 —— 屏幕上最多 5px。
+     * 每条线、方框、圆都是独立元素，各自按"离指针越近推得越多"往反方向让开；
+     * 点阵整体往反方向偏一点，形成轻微视差。
+     *
+     * 注意：SVG 里的位移单位是 viewBox 单位，不是 CSS px（这张图在 1440 宽下
+     * 被缩到 0.58 倍）。所以先按屏幕上的 5px 算出来，再除以缩放比换回去。
      */
+    const svg = document.querySelector<SVGSVGElement>('.hero__art');
     const geo = document.querySelector<HTMLElement>('.hero__geo');
+    const hero = document.querySelector<HTMLElement>('.hero');
 
-    if (geo && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      const parts = [...geo.querySelectorAll<HTMLElement>(':scope > span')];
-      let base: { cx: number; cy: number }[] = [];
+    if (svg && geo && hero && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const parts = [...svg.querySelectorAll<SVGGraphicsElement>('line, path')];
       let queued = 0;
-
-      const measure = () => {
-        parts.forEach((el) => (el.style.translate = ''));
-        base = parts.map((el) => {
-          const r = el.getBoundingClientRect();
-          return { cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
-        });
-      };
 
       const onMove = (e: PointerEvent) => {
         if (queued) return;
         queued = requestAnimationFrame(() => {
           queued = 0;
-          parts.forEach((el, i) => {
-            const dx = base[i].cx - e.clientX;
-            const dy = base[i].cy - e.clientY;
+          const m = svg.getScreenCTM();
+          if (!m) return;
+          for (const el of parts) {
+            const b = el.getBBox();
+            const ux = b.x + b.width / 2;
+            const uy = b.y + b.height / 2;
+            const cx = m.a * ux + m.c * uy + m.e;
+            const cy = m.b * ux + m.d * uy + m.f;
+            const dx = cx - e.clientX;
+            const dy = cy - e.clientY;
             const d = Math.hypot(dx, dy) || 1;
-            const k = Math.max(0, 1 - d / 900) * 5; // 最远 5px
-            el.style.translate = `${((dx / d) * k).toFixed(2)}px ${((dy / d) * k).toFixed(2)}px`;
-          });
+            const px = Math.max(0, 1 - d / 900) * 5; // 屏幕上最远 5px
+            const u = px / (m.a || 1); // 换回 viewBox 单位
+            el.style.transform = `translate(${((dx / d) * u).toFixed(2)}px, ${((dy / d) * u).toFixed(2)}px)`;
+          }
           geo.style.setProperty('--grid-x', `${((e.clientX / innerWidth - 0.5) * -10).toFixed(2)}px`);
           geo.style.setProperty('--grid-y', `${((e.clientY / innerHeight - 0.5) * -10).toFixed(2)}px`);
         });
       };
 
-      measure();
-      window.addEventListener('resize', measure, { passive: true });
-      document.querySelector('.hero')?.addEventListener('pointermove', onMove as EventListener);
-      document.querySelector('.hero')?.addEventListener('pointerleave', () => {
-        parts.forEach((el) => (el.style.translate = ''));
+      hero.addEventListener('pointermove', onMove as EventListener);
+      hero.addEventListener('pointerleave', () => {
+        parts.forEach((el) => (el.style.transform = ''));
         geo.style.setProperty('--grid-x', '0px');
         geo.style.setProperty('--grid-y', '0px');
       });

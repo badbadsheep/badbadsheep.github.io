@@ -1,0 +1,64 @@
+---
+/**
+ * 首屏几何层 —— 按 PSD（2497×1321）拆出来的矢量重绘。
+ *
+ * 数据来源：把一个 PSD 逐像素解出来的（RANSAC 拟合直线、最小二乘拟合圆），不是目测。
+ *   彩色线 10 条，线宽 2.8（viewBox 单位）；方框 857×857、线宽 4；
+ *   圆心 (2097,567)、半径 298，右半边被方框右边缘裁掉（用 clipPath 复现）。
+ *
+ * 为什么重画成 SVG 而不是直接放 PNG：
+ *   1. 任意屏幕尺寸下都是矢量，不会糊；
+ *   2. 每条线/每个图形是独立元素 —— 指针靠近时可以各自"被推开"，
+ *      用一张图做不到这个；
+ *   3. 明暗两套配色只需要换 CSS 变量，不用两张图。
+ *
+ * preserveAspectRatio 用 xMaxYMid：构图在右侧、左边是空场，裁切锚在右边，
+ * 这样窗口比画布窄时被裁掉的是左边那片空白，方框和圆的断口不会被切掉。
+ *
+ * 配色：深色模式用 PSD 里肉眼看到的颜色（图层半透明叠在纯黑上的结果）；
+ *       浅色模式用图层里的原始满亮度色 —— 白底上用暗色会糊成一片。
+ * 具体色值全在 facade.css 的 .hero__art 里，这里只贴 class。
+ */
+---
+
+<svg
+  class="hero__art"
+  viewBox="0 0 2497 1321"
+  preserveAspectRatio="xMaxYMid slice"
+  aria-hidden="true"
+  focusable="false"
+>
+  <defs>
+    <!-- 圆被方框右边缘裁掉的那一刀 -->
+    <clipPath id="hero-clip-right">
+      <rect x="0" y="0" width="2305" height="1321" />
+    </clipPath>
+  </defs>
+
+  <g class="hero__art-lines">
+    <line class="is-cyan" x1="2496" y1="187" x2="593" y2="1321" />
+    <line class="is-cyan" x1="1859" y1="-1" x2="2497" y2="1227" />
+    <line class="is-cyan is-faint" x1="0" y1="99" x2="2495" y2="839" />
+    <line class="is-orange" x1="119" y1="-1" x2="2496" y2="894" />
+    <line class="is-amber" x1="2456" y1="-1" x2="706" y2="1321" />
+    <line class="is-purple" x1="2487" y1="-1" x2="1322" y2="1321" />
+    <line class="is-red" x1="1514" y1="-1" x2="2497" y2="1190" />
+    <line class="is-blue" x1="2484" y1="-1" x2="1749" y2="1321" />
+    <line class="is-green" x1="1876" y1="0" x2="2258" y2="1320" />
+    <line class="is-olive" x1="2122" y1="0" x2="2289" y2="1320" />
+  </g>
+
+  <g class="hero__art-shapes">
+    {/*
+      一条闭合路径，不是"方框 + 圆"两个图形：
+      方形走一圈，右边缘在 y 354→780 之间断开，那一截换成圆的弧（从右边缘上端
+      逆时针绕过圆顶、左侧、底部，回到右边缘下端）。断口就是被"挖走"的那块。
+      数字来自你发的 TIF：方框 1453–2305 / 220–1071，右边缘缺口 348–786，
+      圆弧半径 298、圆心 (2097,567)。
+    */}
+    <path
+      class="is-shape"
+      d="M1453 220 H2305 V354 A298 298 0 1 0 2305 780 V1071 H1453 Z"
+    />
+  </g>
+</svg>

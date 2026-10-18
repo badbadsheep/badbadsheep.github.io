@@ -16,6 +16,7 @@ public/fonts/smiley-sans-subset.woff2
 
 # 编辑器与本地工具
 .vscode/
+!.vscode/settings.json
 .idea/
 *.log
 *.tsbuildinfo
