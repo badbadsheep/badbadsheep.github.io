@@ -1,0 +1,5 @@
+def f(): pass
+f.x = 1
+print(f.__dict__)     # {'x': 1}
+
+print(eval.__self__)  # <module 'builtins' (built-in)>
