@@ -77,6 +77,37 @@ summary: 一句话摘要，会出现在列表与气泡里。
 .\scripts\new.ps1 -Publish -Slug 文件名
 ```
 
+
+斜体 (Italic)
+语法：*文字* 或 _文字_
+
+粗体 (Bold)
+语法：**文字** 或 __文字__
+
+粗斜体 (Bold + Italic)
+语法：***文字*** 或 ___文字___
+
+删除线 (Strikethrough)
+用双波浪线包裹文字（这是 GitHub 和多数现代 Markdown 解析器支持的扩展语法）。
+~~文字~~
+
+5. 行内代码 / 等宽字体 (Inline Code)
+如果你想让文字显示为等宽字体（通常用于代码或强调特定词汇），用单反引号包裹。
+
+语法：`文字`
+
+6. 高亮 (Highlight)
+语法：==文字==
+
+效果：==文字==（视解析器而定，可能显示为黄色背景）
+
+7 对话链接：
+
+**[deepseek对话链接](http//。。。。)**
+
+
+
+
 ### 排版会自动做这几件事（不用你管）
 
 | 行为 | 触发条件 |
@@ -100,12 +131,6 @@ summary: 一句话摘要，会出现在列表与气泡里。
 ![](../../assets/images/xxx.png)
 ```
 
-从 `src/content/<栏目>/x.md` 到 `src/assets/images/` 正好是 `../../`，所以这一行永远是这么写。
-构建时会自动转 WebP 并带上宽高（不会跳版）。
-
-在 VS Code 里装 **Markdown Image**（或 Paste Image）插件，`Ctrl+Alt+V` 直接粘贴截图落盘。
-
-图标、头像、字体这类"要一个稳定网址"的东西放 `public/`。
 
 ### 缩放与并排
 
@@ -114,15 +139,6 @@ summary: 一句话摘要，会出现在列表与气泡里。
 
 **并排两张（各占一半）** —— 两张图之间**必须空一行**，否则 Markdown 会把它们塞进同一个段落：
 
-```markdown
-<div class="figures">
-
-![](../../assets/images/a.png)
-
-![](../../assets/images/b.png)
-
-</div>
-```
 
 **并排 + 整体再缩到 66%**：
 
@@ -139,9 +155,11 @@ summary: 一句话摘要，会出现在列表与气泡里。
 **单张缩放**（等比，居中）：
 
 ```markdown
-<div class="w-60">
+<div class="figures w-66">
 
-![](../../assets/images/xxx.png) （ctrl alt v）
+![](../../assets/images/a.png)
+
+![](../../assets/images/b.png)
 
 </div>
 ```

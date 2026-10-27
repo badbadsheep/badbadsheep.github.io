@@ -6,6 +6,8 @@ authors:
 tags:
   - 吃白饭的蓝色大肥鱼
 draft: false
+summary: 突然想要一个自己的网站！
+
 ---
 突然想要一个自己的网站！
 

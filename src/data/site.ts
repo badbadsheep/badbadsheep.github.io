@@ -23,7 +23,7 @@ export const SITE = {
 export const LINKS = [
   { href: '/about/', label: '关于' },
   { href: '/archive/', label: '归档' },
-  { href: '/credits/', label: '致谢' },
+  { href: '/links/', label: '友链' },
   { href: '/feed_rss_created.xml', label: 'RSS' },
   { href: `https://github.com/${SITE.github}`, label: 'GitHub', external: true },
   { href: `mailto:${SITE.email}`, label: SITE.email, external: true },

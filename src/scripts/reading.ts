@@ -262,6 +262,154 @@ if (toc) {
   }
 }
 
+/* ── 目录拖尾：预览线身后的彩色小点 ─────────────────────────────────────
+   拖动时那条 2px 的灰线太安静。这里在它身后撒 2×2 像素的彩色小点。
+
+   点的逻辑只有一句：**生在哪就停在哪**。线一走开，点留在原地，连起来就是轨迹。
+   于是越早生下的点离得越远、也越淡 —— 近密远疏；点永远落在线的反方向，
+   线往右走，尾巴就甩在左边。速度越快撒得越多、尾巴伸得越长，慢拖就是一小团。
+
+   降级：prefers-reduced-motion 时整个效果不介入，灰线照旧。 */
+interface TrailDot {
+  x: number;
+  y: number;
+  /** 已活时长（ms） */
+  age: number;
+  /** 总寿命（ms） */
+  ttl: number;
+  color: string;
+}
+
+interface Trail {
+  start(x: number): void;
+  move(x: number): void;
+  end(): void;
+}
+
+/** 小点边长，CSS 像素 —— 用户指定的 2×2 */
+const TRAIL_DOT = 2;
+/** 点数量上限，狂拖时兜底 */
+const TRAIL_MAX = 4200;
+const TRAIL_TOKENS = ['--trail-1', '--trail-2', '--trail-3', '--trail-4', '--trail-5'] as const;
+
+function createTrail(): Trail | null {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+
+  const canvas = document.createElement('canvas');
+  canvas.className = 'toc-trail';
+  canvas.setAttribute('aria-hidden', 'true');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  /** 颜色只在 tokens.css 里定义，这里按当前主题读一次 */
+  let palette: string[] = [];
+  const readPalette = (): void => {
+    const cs = getComputedStyle(document.documentElement);
+    palette = TRAIL_TOKENS.map((name) => cs.getPropertyValue(name).trim()).filter(Boolean);
+    if (!palette.length) palette = ['#ffffff'];
+  };
+  readPalette();
+
+  const dots: TrailDot[] = [];
+  let dpr = 1;
+  let raf = 0;
+  let running = false;
+  let last = 0;
+  /** 指针最新位置 */
+  let targetX = 0;
+  /** 上一帧画到的位置，用来算速度 */
+  let frameX = 0;
+  /** 平滑后的水平速度，px/ms */
+  let vx = 0;
+
+  const resize = (): void => {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(window.innerWidth * dpr);
+    canvas.height = Math.round(window.innerHeight * dpr);
+  };
+
+  /** 纵向：中间密、上下两端自然稀（两个均匀随机数相加 = 三角分布） */
+  const pickY = (h: number): number => h * (0.5 + (Math.random() + Math.random() - 1) * 0.5);
+
+  const spawn = (speed: number, dir: number, h: number): void => {
+    // 拖得越快：一帧撒得越多、尾巴伸得越长；慢拖就是贴着线的一小团
+    const count = Math.min(90, Math.max(5, Math.round(3 + speed * 95)));
+    const reach = Math.min(170, 10 + speed * 75);
+    for (let i = 0; i < count; i += 1) {
+      // 幂次分布：绝大多数点挤在线上，越往后越稀 —— 这就是"由密到疏"
+      const back = Math.pow(Math.random(), 2.6) * reach;
+      dots.push({
+        x: targetX - dir * back,
+        y: pickY(h),
+        age: 0,
+        ttl: 130 + Math.random() * 230,
+        color: palette[(Math.random() * palette.length) | 0],
+      });
+    }
+    if (dots.length > TRAIL_MAX) dots.splice(0, dots.length - TRAIL_MAX);
+  };
+
+  const frame = (now: number): void => {
+    const dt = Math.min(48, Math.max(1, now - last));
+    last = now;
+
+    const dx = targetX - frameX;
+    frameX = targetX;
+    vx += (dx / dt - vx) * 0.45;
+
+    const h = window.innerHeight;
+    const speed = Math.abs(vx);
+    if (running && speed > 0.01) spawn(speed, vx > 0 ? 1 : -1, h);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const side = Math.max(1, Math.round(TRAIL_DOT * dpr));
+
+    // 边画边收：寿终的点直接就地覆盖掉
+    let keep = 0;
+    for (let i = 0; i < dots.length; i += 1) {
+      const dot = dots[i];
+      dot.age += dt;
+      const k = dot.age / dot.ttl;
+      if (k >= 1) continue;
+      dots[keep] = dot;
+      keep += 1;
+      ctx.globalAlpha = Math.pow(1 - k, 1.25);
+      ctx.fillStyle = dot.color;
+      ctx.fillRect(Math.round(dot.x * dpr), Math.round(dot.y * dpr), side, side);
+    }
+    dots.length = keep;
+    ctx.globalAlpha = 1;
+
+    if (!running && !dots.length) {
+      raf = 0;
+      canvas.remove();
+      return;
+    }
+    raf = requestAnimationFrame(frame);
+  };
+
+  return {
+    start(x) {
+      readPalette(); // 刚刚可能切过明暗
+      resize();
+      running = true;
+      targetX = x;
+      frameX = x;
+      vx = 0;
+      dots.length = 0;
+      last = performance.now();
+      document.body.append(canvas);
+      if (!raf) raf = requestAnimationFrame(frame);
+    },
+    move(x) {
+      targetX = x;
+    },
+    end() {
+      running = false;
+    },
+  };
+}
+
 /* ── 目录面板：拖左边缘改宽度 ───────────────────────────────────────────
    宽度写进 CSS 变量 --toc-w，正文区的右边距读的是同一个变量，
    所以拖动时文字会跟着重新排布，不是被面板盖住。
@@ -270,6 +418,8 @@ const tocPanel = document.querySelector<HTMLElement>('[data-toc-panel]');
 
 if (tocPanel) {
   const grip = tocPanel.querySelector<HTMLElement>('[data-toc-grip]');
+  /** 预览线的彩色拖尾；偏好减少动效时是 null，一切照旧 */
+  const trail = createTrail();
   const root = document.documentElement;
   const STORE = 'bbs:toc-w';
   const MIN_W = 40;
@@ -307,50 +457,126 @@ if (tocPanel) {
     let dragging = false;
     let startX = 0;
     let startW = 0;
+    let pendingW = 0;
+    let preview: HTMLElement | null = null;
+    /** 拖动开始时不动的那个段落，以及它在视口里的位置 */
+    let anchor: Element | null = null;
+    let anchorTop = 0;
+
+    /**
+     * 拖目录时**不实时重排**，只显示一条预览线，松手才应用宽度。
+     *
+     * 原因（录屏逐帧量出来的）：行宽一变，整篇会重新折行，70% 宽的插图也跟着
+     * 放大缩小，文档总高在拖动过程中上下浮动几千像素 —— 正在读的那一段会被推走，
+     * 幅度一大还会被浏览器夹到底部（看起来就是"拖一下直接跳到评论区"）。
+     * 实时重排带来的手感收益，抵不上"读着读着页面跑了"的代价，所以改成松手生效。
+     */
+    const pickAnchor = (): void => {
+      const nodes = [...document.querySelectorAll('.prose > *')];
+      anchor = nodes.find((n) => n.getBoundingClientRect().bottom > 0) ?? null;
+      anchorTop = anchor ? anchor.getBoundingClientRect().top : 0;
+    };
+
+    /** 重排后把锚点段落挪回原来的视口位置（松手只重排一次，这里补偿那一次） */
+    const keepAnchor = (): void => {
+      if (!anchor) return;
+      const delta = anchor.getBoundingClientRect().top - anchorTop;
+      if (Math.abs(delta) > 0.5) {
+        /**
+         * 必须瞬时滚。站点全局开了 scroll-behavior: smooth（shell.css），
+         * 写 window.scrollBy 会变成一段 500ms 的平滑动画；如果在每帧里调，
+         * 动画会互相叠加，页面就会自己越滚越远 —— 这正是"拖目录跳走"的原因。
+         */
+        window.scrollTo({ top: window.scrollY + delta, behavior: 'instant' as ScrollBehavior });
+      }
+    };
+
+    const showPreview = (clientX: number): void => {
+      if (!preview) {
+        preview = document.createElement('div');
+        preview.className = 'toc-preview';
+        preview.setAttribute('aria-hidden', 'true');
+        document.body.append(preview);
+      }
+      preview.style.left = `${Math.round(clientX)}px`;
+      preview.dataset.on = '';
+    };
+
+    const hidePreview = (): void => {
+      if (preview) {
+        preview.remove();
+        preview = null;
+      }
+    };
 
     const onMove = (e: PointerEvent): void => {
       if (!dragging) return;
       // 往左拖 = 变宽
-      applyWidth(startW + (startX - e.clientX));
+      pendingW = startW + (startX - e.clientX);
+      showPreview(e.clientX);
+      trail?.move(e.clientX);
     };
 
     const onUp = (): void => {
       if (!dragging) return;
       dragging = false;
+      hidePreview();
+      trail?.end();
       tocPanel.removeAttribute('data-dragging');
+      document.documentElement.classList.remove('is-toc-dragging');
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       document.body.style.userSelect = '';
       document.body.style.cursor = '';
-      applyWidth(currentWidth(), true);
+      // 松手：一次性应用宽度，然后把正在读的那一段挪回原处
+      applyWidth(pendingW || currentWidth(), true);
+      requestAnimationFrame(keepAnchor);
     };
 
     grip.addEventListener('pointerdown', (e) => {
       dragging = true;
       startX = e.clientX;
       startW = tocPanel.getBoundingClientRect().width;
+      pendingW = startW;
+      pickAnchor();
       tocPanel.setAttribute('data-dragging', '');
+      document.documentElement.classList.add('is-toc-dragging');
       document.body.style.userSelect = 'none';
       document.body.style.cursor = 'col-resize';
+      showPreview(e.clientX);
+      trail?.start(e.clientX);
+      // 抓取指针：拖动过程中事件始终回到手柄，不会中途丢
+      try {
+        grip.setPointerCapture(e.pointerId);
+      } catch {
+        /* 某些浏览器不支持，忽略 */
+      }
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
       e.preventDefault();
     });
 
-    // 键盘也能调：← → 各 16px，Home 收到最窄，End 拉到半屏
+    // 键盘也能调：← → 各 16px，Home 收到最窄，End 拉到半屏。
+    // 和鼠标拖动一样，重排后把正在读的段落挪回原处，不要让人跳走。
+    const applyAnchored = (w: number): void => {
+      pickAnchor();
+      applyWidth(w, true);
+      keepAnchor();
+    };
+
     grip.addEventListener('keydown', (e) => {
       const w = tocPanel.getBoundingClientRect().width;
       if (e.key === 'ArrowLeft') {
-        applyWidth(w + 16, true);
+        applyAnchored(w + 16);
         e.preventDefault();
       } else if (e.key === 'ArrowRight') {
-        applyWidth(w - 16, true);
+        applyAnchored(w - 16);
         e.preventDefault();
       } else if (e.key === 'Home') {
-        applyWidth(MIN_W, true);
+        applyAnchored(MIN_W);
         e.preventDefault();
       } else if (e.key === 'End') {
-        applyWidth(window.innerWidth * 0.5, true);
+        applyAnchored(window.innerWidth * 0.5);
         e.preventDefault();
       }
     });

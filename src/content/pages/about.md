@@ -1,31 +1,41 @@
 ---
 title: 关于
-desc: 这个站是什么，以及它是怎么被拼出来的
 ---
 
-## 这是什么
+## what's this
 
-一个个人博客。文章用 Markdown 写，放在 Git 仓库里，构建成静态页面后挂到 GitHub Pages 上。
-
-站里放三类东西：学习时留下的笔记、写完整的故事、画过的图和做过的项目。它们分在四个栏目，各走各的。
-
-## 怎么变成现在这样
-
-2026 年 10 月先搭了一版，用的是 MkDocs + Material。它把所有页面都排成文档的样子，文章读起来像说明书。
-
-我不喜欢这样，于是整站重写，换成 Astro。旧的 URL 和正文都保住了，换掉的只是外面那层壳。
+个人博客和作品集的综合网站。文章用 Markdown 写，放在 Git 仓库里，构建成静态页面后挂到 GitHub Pages 上。
 
 ## 技术组成
 
-| 组成 | 选型 | 说明 |
+| 组成 | 选型 |
+| --- | --- |
+| 静态站点生成 | Astro | 
+| 样式 | 原生 CSS 加设计令牌 |
+| 门面构图 | SVG 加 CSS | 
+| 搜索 | 自建倒排索引 | 
+| 评论 | giscus | 
+| 部署 | GitHub Pages | 
+| 订阅 | RSS | 
+
+
+
+## 字体
+
+| 字体 | 用途 | 授权 |
 | --- | --- | --- |
-| 静态站点生成 | Astro | 内容集合加构建期校验，页面不加载前端框架 |
-| 样式 | 原生 CSS 加设计令牌 | 门面是黑白几何，阅读区安静 |
-| 门面构图 | SVG 加 CSS | 按设计稿重绘的矢量线条，随窗口等比缩放 |
-| 搜索 | 自建倒排索引 | 中英文都能搜，索引在打开搜索时才加载 |
-| 评论 | giscus | 评论存在 GitHub Discussions 里 |
-| 部署 | GitHub Pages | GitHub Actions 构建并发布 |
-| 订阅 | RSS | 构建时生成，任何阅读器都能订阅 |
+| [Instrument Serif](https://github.com/Instrument/instrument-serif) | 拉丁文大字、站名、英文标题 | SIL Open Font License 1.1 |
+| [得意黑 Smiley Sans](https://github.com/atelier-anchor/smiley-sans) | 界面上的中文标题（仅子集） | SIL Open Font License 1.1 |
+
+## 技术
+
+- [Astro](https://astro.build/)：静态站点框架，MIT 许可
+- [Shiki](https://shiki.style/)：代码高亮，配色取自 VSCode
+- [giscus](https://giscus.app/)：GitHub Discussions 做评论区
+
+## 图像
+
+站内插图和头像都是我自己做的。文章里如果用了别人的图，会在正文注明。
 
 ## 版权
 

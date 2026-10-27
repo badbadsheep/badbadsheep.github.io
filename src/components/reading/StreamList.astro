@@ -41,13 +41,6 @@ const pageHref = (n: number): string => (n <= 1 ? section.url : `${section.url}p
                 <a href={p.url}>{p.title}</a>
               </h2>
               {p.summary && <p class="row__sum">{p.summary}</p>}
-              <div class="row__meta">
-                <span>{p.section.name}</span>
-                {p.tags.map((t) => (
-                  <span>{t}</span>
-                ))}
-                <span>{p.minutes} 分钟</span>
-              </div>
             </div>
           </li>
         ))}

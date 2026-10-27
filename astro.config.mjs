@@ -147,6 +147,8 @@ export default defineConfig({
   redirects: {
     // 这篇从 blog 挪到了 story（2026-10-17）
     '/blogs/the-born-of-badbadblog/': '/stories/the-born-of-badbadblog/',
+    // 致谢那页并进了关于（2026-10-27），旧地址留个跳转
+    '/credits/': '/about/',
   },
 
   integrations: [

@@ -1,0 +1,433 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   打印样式（A4 / 无页眉页脚 / 正文小四 / 单图 70% / 题目接排）
+
+   字体坑：Chrome 排版只拿 font-family 列表里第一个可用字体当主字体，
+   缺汉字就直接走系统兜底（NSimSun 宋体），堆名字没用。
+   所以用 unicode-range 把「拉丁字形」和「汉字字形」拼成同一个家族。
+   ═══════════════════════════════════════════════════════════════════════ */
+@font-face {
+  font-family: 'BB Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Segoe UI');
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2000-206F;
+}
+@font-face {
+  font-family: 'BB Sans';
+  font-style: normal;
+  font-weight: 700;
+  src: local('Segoe UI Bold');
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2000-206F;
+}
+@font-face {
+  font-family: 'BB Sans';
+  font-style: italic;
+  font-weight: 400;
+  src: local('Segoe UI Italic');
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2000-206F;
+}
+@font-face {
+  font-family: 'BB Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Microsoft YaHei');
+  unicode-range: U+2190-21FF, U+2E80-303F, U+3040-30FF, U+31F0-31FF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
+}
+@font-face {
+  font-family: 'BB Sans';
+  font-style: normal;
+  font-weight: 700;
+  src: local('Microsoft YaHei Bold');
+  unicode-range: U+2190-21FF, U+2E80-303F, U+3040-30FF, U+31F0-31FF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
+}
+@font-face {
+  font-family: 'BB Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Segoe UI Emoji');
+  unicode-range: U+1F000-1FAFF;
+}
+
+@font-face {
+  font-family: 'BB Mono';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Consolas');
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2000-206F;
+}
+@font-face {
+  font-family: 'BB Mono';
+  font-style: normal;
+  font-weight: 700;
+  src: local('Consolas Bold');
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2000-206F;
+}
+@font-face {
+  font-family: 'BB Mono';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Microsoft YaHei');
+  unicode-range: U+2190-21FF, U+2E80-303F, U+3040-30FF, U+31F0-31FF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
+}
+
+@font-face {
+  font-family: 'BB Display';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/public/fonts/instrument-serif-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2000-206F;
+}
+@font-face {
+  font-family: 'BB Display';
+  font-style: italic;
+  font-weight: 400;
+  src: url('/public/fonts/instrument-serif-latin-400-italic.woff2') format('woff2');
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2000-206F;
+}
+@font-face {
+  font-family: 'BB Display';
+  font-style: oblique 0deg 12deg;
+  font-weight: 400;
+  src: url('/.pdf-tmp/smiley.woff2') format('woff2');
+  unicode-range: U+2190-21FF, U+2E80-303F, U+3040-30FF, U+31F0-31FF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
+}
+
+:root {
+  --f-display: 'BB Display', serif;
+  --f-sans: 'BB Sans', serif;
+  --f-mono: 'BB Mono', monospace;
+
+  --ink: #141414;
+  --ink-2: #4d4d4d;
+  --ink-3: #8c8c8c;
+  --rule: #d9d9d9;
+  --rule-2: #e9e9e9;
+  --fill: #f7f7f7;
+}
+
+/* ── 页面：不要页眉页脚，上下左右留白对称 ─────────────────────────────── */
+@page {
+  size: A4;
+  margin: 16mm 17mm;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+body {
+  margin: 0 auto;
+  max-width: 176mm;
+  font-family: var(--f-sans);
+  font-size: 12pt; /* 小四 */
+  line-height: 1.8;
+  color: var(--ink);
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+}
+
+/* ── 封面 ─────────────────────────────────────────────────────────────── */
+.cover {
+  height: 246mm;
+  break-after: page;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.cover__kicker {
+  font-family: var(--f-mono);
+  font-size: 8pt;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.cover__title {
+  margin: 6mm 0 0;
+  font-family: var(--f-display);
+  font-size: 30pt;
+  font-weight: 400;
+  line-height: 1.34;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+}
+
+.cover__rule {
+  margin: 9mm 0 8mm;
+  border-top: 1.4px solid var(--ink);
+}
+
+.cover__summary {
+  margin: 0 0 8mm;
+  max-width: 120mm;
+  font-size: 13pt;
+  line-height: 1.9;
+  color: var(--ink-2);
+}
+
+/* 日期 / 作者：比正文再大一点，等宽数字好对齐 */
+.cover__meta {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--f-mono);
+  font-size: 15pt;
+  line-height: 1.95;
+  color: var(--ink-2);
+}
+
+.cover__meta span {
+  display: inline-block;
+  width: 24mm;
+  font-family: var(--f-sans);
+  font-size: 14pt;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+}
+
+/* ── 正文 ─────────────────────────────────────────────────────────────── */
+.prose {
+  font-size: 12pt; /* 小四 */
+  line-height: 1.8;
+  overflow-wrap: break-word;
+}
+
+.prose > * {
+  margin-block: 0;
+}
+
+.prose > * + * {
+  margin-top: 3.6mm;
+}
+
+.prose p {
+  text-align: left;
+  orphans: 2;
+  widows: 2;
+}
+
+/* 一级标题 = 一道题，不强制分页，接着上一段写 */
+.prose > h1 {
+  break-after: avoid;
+  margin-top: 11mm;
+  padding-bottom: 2.8mm;
+  border-bottom: 1.4px solid var(--ink);
+  font-family: var(--f-display);
+  font-size: 22pt;
+  font-weight: 400;
+  line-height: 1.32;
+  letter-spacing: 0.004em;
+  color: var(--ink);
+}
+
+/* 小节标题：短墨线用 background 画在标题自己的盒子里
+   （用 ::before 时，标题被挤到下一页会把线孤零零留在页脚） */
+.prose > h4 {
+  break-after: avoid;
+  margin-top: 8mm;
+  padding-top: 4.8mm;
+  background-image: linear-gradient(to right, var(--ink), var(--ink));
+  background-repeat: no-repeat;
+  background-size: 7mm 1.8px;
+  background-position: 0 0;
+  font-family: var(--f-sans);
+  font-size: 13.4pt;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.prose > h1 + h4 {
+  margin-top: 5mm;
+}
+
+.prose h2,
+.prose h3 {
+  break-after: avoid;
+  margin-top: 7mm;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.prose h2 {
+  font-size: 15.5pt;
+}
+
+.prose h3 {
+  font-size: 13.5pt;
+}
+
+.prose strong {
+  font-weight: 700;
+}
+
+.prose a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 0.6px;
+  text-decoration-color: #b0b0b0;
+  text-underline-offset: 0.22em;
+  overflow-wrap: anywhere;
+}
+
+.prose blockquote {
+  margin: 4.6mm 0;
+  padding: 0.4mm 0 0.4mm 4.6mm;
+  border-left: 2.4px solid var(--ink-3);
+  color: var(--ink-2);
+  break-inside: avoid;
+}
+
+.prose blockquote p {
+  margin: 0;
+}
+
+.prose blockquote > * + * {
+  margin-top: 2.4mm;
+}
+
+.prose ol,
+.prose ul {
+  margin: 3.6mm 0;
+  padding-left: 7.5mm;
+}
+
+.prose li + li {
+  margin-top: 1.4mm;
+}
+
+.prose li::marker {
+  color: var(--ink-3);
+}
+
+.prose li {
+  overflow-wrap: anywhere;
+}
+
+.prose hr {
+  margin: 7mm 0;
+  border: 0;
+  border-top: 1px solid var(--rule);
+}
+
+/* ── 图片：单张统一 70% 宽、居中、等比 ─────────────────────────────────── */
+.prose img {
+  display: block;
+  width: 70%;
+  height: auto;
+  margin: 4.4mm auto;
+  border: 1px solid var(--rule-2);
+  background: #fff;
+  break-inside: avoid;
+}
+
+.prose p:has(> img) {
+  break-inside: avoid;
+}
+
+/* 被切段的长图：宽度写在 style 上，不加边框（要能接起来看不出接缝） */
+.prose img.strip {
+  width: auto;
+  max-width: none;
+  margin: 0 auto;
+  border: 0;
+}
+
+.prose p.strip-group {
+  break-inside: auto;
+  margin: 4.4mm 0;
+}
+
+.prose p.strip-group + * {
+  margin-top: 4.4mm;
+}
+
+/* 并排图：填满各自那一格 */
+.prose .figures {
+  display: flex;
+  gap: 3.6mm;
+  align-items: flex-start;
+  margin: 4.6mm 0;
+  break-inside: avoid;
+}
+
+.prose .figures > * {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+}
+
+.prose .figures img {
+  width: 100%;
+  margin: 0;
+}
+
+/* ── 行内代码 ──────────────────────────────────────────────────────────── */
+.prose :not(pre) > code {
+  padding: 0.06em 0.34em;
+  border: 1px solid var(--rule-2);
+  border-radius: 2px;
+  background: var(--fill);
+  font-family: var(--f-mono);
+  font-size: 0.87em;
+  overflow-wrap: break-word;
+}
+
+/* ── 代码块 ───────────────────────────────────────────────────────────── */
+.code {
+  margin: 4.6mm 0;
+  border: 1px solid var(--rule);
+  break-inside: avoid;
+}
+
+.code.is-long {
+  break-inside: auto;
+}
+
+.code__bar {
+  display: flex;
+  align-items: center;
+  height: 7mm;
+  padding: 0 3mm;
+  border-bottom: 1px solid var(--rule);
+  background: #f3f3f3;
+  font-family: var(--f-mono);
+  font-size: 7.6pt;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  break-after: avoid;
+}
+
+.code pre {
+  margin: 0;
+  padding: 3.2mm 3.4mm 3.6mm;
+  border: 0;
+  background: #fcfcfc;
+  font-family: var(--f-mono);
+  font-size: 9.3pt;
+  line-height: 1.62;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 2;
+}
+
+.code pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: inherit;
+  white-space: inherit;
+}
+
+/* 代码里的中文：只压一点字号，字体交给 BB Mono 的汉字面 */
+.code .cj {
+  font-family: inherit;
+  font-size: 0.94em;
+}

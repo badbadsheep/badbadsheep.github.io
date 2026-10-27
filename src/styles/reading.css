@@ -283,6 +283,48 @@
   box-shadow: none;
 }
 
+/* 拖动目录时的预览线：拖动过程中不重排，只有这条线跟着指针走，松手才应用宽度。
+   这样行宽不会在拖动中反复变化，正在读的那一段就不会被推走。 */
+.toc-preview {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--fg-2);
+  opacity: 0.75;
+  z-index: 60;
+  pointer-events: none;
+}
+
+/* 拖尾画布：拖动期间由 reading.ts 插进 body，松手后点散尽自动移除。
+   贴满视口、不吃指针事件；层级压在预览线下面，线本身永远是干净的一条。 */
+.toc-trail {
+  position: fixed;
+  inset: 0;
+  z-index: 59;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+/* 拖动期间关掉全局平滑滚动（shell.css 里 html 上有 scroll-behavior: smooth）。
+   否则任何程序化滚动都会被动画化，锚定补偿在帧间叠加，页面会自己越滚越远。 */
+html.is-toc-dragging {
+  scroll-behavior: auto;
+}
+
+/* 拖动目录时锁住滚动锚定：行宽在变、整篇在重排，浏览器可能自行调整滚动位置，
+   表现就是"拖目录正文乱跑"。配合 reading.ts 里的滚动补偿一起用。 */
+html.is-toc-dragging,
+html.is-toc-dragging body {
+  overflow-anchor: none;
+}
+
+/* 拖动期间别让目录里的文字被选中，否则拖动可能变成拖选文本 */
+html.is-toc-dragging .toc-panel {
+  user-select: none;
+  -webkit-user-select: none;
+}
 /* 收起到最窄时：只留一条竖排的「目录」和手柄，点一下就能重新拉开 */
 .toc-panel[data-collapsed] .toc-panel__inner {
   display: none;
@@ -476,13 +518,30 @@
   background: var(--bg-2);
 }
 
+/* 正文里单独一张图，默认占 70% 宽、居中、等比。
+   占满整栏会把版面"顶"住，两侧没有呼吸；70% 是阅读区和图片之间比较舒服的比例。
+   要满宽或更窄：外面套一层 <div class="figures">（满宽）或 w-* 宽度类。
+   并排（.figures）和 w-* 包裹的图各有更高优先级的规则，不受这里影响。 */
 .prose img {
   display: block;
-  width: 100%;
+  width: 70%;
   height: auto;
   margin-block: 1.8em;
+  margin-inline: auto;
   border: var(--hairline) solid var(--line);
   cursor: zoom-in;
+}
+
+/* 套了 w-* 的图仍然填满那个盒子（宽度由外层决定），不能又被压到 70% */
+.prose :is(.w-90, .w-75, .w-66, .w-60, .w-50, .w-40, .w-33, .w-25) img {
+  width: 100%;
+}
+
+/* 手机上 70% 就太小了，恢复满宽 */
+@media (max-width: 47.9rem) {
+  .prose img {
+    width: 100%;
+  }
 }
 
 /* ── 图片缩放 / 并排 ────────────────────────────────────────────────────
@@ -519,6 +578,14 @@
   flex: 1 1 0;
   min-width: 0;
   margin: 0;
+}
+
+/* 三张一排、每张占 30%：<div class="figures w-30">。
+   注意 w-30 是 **class**，写成 <div class="figures" w-30> 是无效的 ——
+   那会被浏览器当成一个叫 w-30 的 HTML 属性，样式完全不生效。
+   （w-30 只在这个组合里有效：它表示"每张占多少"，不是整块占多少。） */
+.prose .figures.w-30 > * {
+  flex: 0 1 30%;
 }
 
 .prose .figures img {
@@ -1021,6 +1088,89 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   text-align: center;
+}
+
+/* ── 友链气泡 ─────────────────────────────────────────────────────────── */
+/* 和首页栏目屏那几条长条气泡同一副骨架：一条一行、占版面 95%、发丝线描边、
+   悬停整体抬起一格。门面那份在 facade.css 的 .bubble 里，阅读区不加载它，
+   所以这里按同一套令牌再写一遍 —— 形状全部取自 tokens 的 --bubble-*，
+   改形状（圆角 / 描边 / 抬起高度）两边一起变。
+   内容：大字名字在左，灰色小字描述紧跟其后；网址不显示，点整条跳转。 */
+.friends {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  width: 95%;
+  margin: var(--s-6) auto 0;
+}
+
+.friends__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  align-content: center;
+  gap: var(--s-4);
+  min-height: 4.25rem;
+  padding: var(--s-4) var(--s-5);
+  border: var(--hairline) solid var(--bubble-border);
+  border-radius: var(--bubble-radius);
+  background: var(--bg);
+  text-decoration: none;
+  transition: border-color var(--d-base) var(--ease-out), background var(--d-base) var(--ease-out),
+    transform var(--d-base) var(--ease-out);
+}
+
+.friends__row:hover {
+  border-color: var(--fg);
+  background: var(--bg-2);
+  transform: translateY(calc(-1 * var(--bubble-lift)));
+}
+
+.friends__name {
+  font-family: var(--f-display);
+  font-size: var(--t-m);
+  line-height: 1.24;
+  color: var(--fg);
+}
+
+/* flex 基准 12rem：一行放得下就贴着名字，放不下就自己落到下一行铺满 */
+.friends__desc {
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-size: var(--t-s);
+  color: var(--fg-2);
+}
+
+/* 气泡下面那段说明（怎么换友链），和气泡同宽 */
+.friends__note {
+  width: 95%;
+  margin: var(--s-6) auto 0;
+  font-size: var(--t-s);
+  color: var(--fg-2);
+}
+
+.friends__note a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--line-2);
+  text-underline-offset: 0.22em;
+}
+
+.friends__note a:hover {
+  text-decoration-color: var(--fg);
+}
+
+@media (max-width: 47.9rem) {
+  /* 手机上把宽度和留白还给字（和首页长条气泡的小屏处理一致） */
+  .friends,
+  .friends__note {
+    width: 100%;
+  }
+
+  .friends__row {
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+  }
 }
 
 /* ── 小屏 ─────────────────────────────────────────────────────────────── */

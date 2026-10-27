@@ -1,0 +1,115 @@
+---
+/**
+ * 友链。
+ *
+ * 长得和首页栏目屏那几条气泡一样：一条一行，大字名字在左，灰色小字描述跟在后面，
+ * 网址不显示在界面上 —— 点整条气泡就跳过去。
+ *
+ * 数据全在 src/content/pages/links.md，一行一条，写法不挑：
+ *     - [名字](https://网址) — 一句话描述
+ *     **[名字](tinyparis.top)**
+ * 只要行首是一个 markdown 链接就算一条友链；网址没写协议会自动补 https://；
+ * 链接后面跟着的字就是那句描述。行首是普通文字（带链接的说明段落）则当正文。
+ * 所以加 / 删一条友链 = 加 / 删一行 markdown，不用碰这个文件。
+ */
+import Reading from '../../layouts/Reading.astro';
+import { getPage } from '../../lib/content';
+
+const page = await getPage('links');
+if (!page) throw new Error('缺少 src/content/pages/links.md');
+
+interface Friend {
+  name: string;
+  url: string;
+  desc?: string;
+}
+
+/** 没写协议的网址补上 https://，否则会被当成站内相对路径 */
+function toHref(raw: string): string {
+  return /^(?:[a-z][a-z0-9+.-]*:|\/\/|\/|#)/i.test(raw) ? raw : `https://${raw}`;
+}
+
+/** 去掉描述前后的强调符号、分隔符与空白 */
+const tidy = (s: string): string =>
+  s
+    .replace(/^[\s*_~]+/, '')
+    .replace(/^[-–—]+/, '')
+    .replace(/[\s*_~]+$/, '')
+    .trim();
+
+/** 行首那个链接：允许前面有列表符号和 ** 之类的强调 */
+const LEADING_LINK = /^[*_]{0,2}\s*\[([^\]]+)\]\(([^)\s]+)\)/;
+
+type Chunk = { text: string } | { text: string; url: string };
+
+/** 说明段落里只认 `[文字](网址)`，其余按纯文本输出 */
+function inline(source: string): Chunk[] {
+  const out: Chunk[] = [];
+  const link = /\[([^\]]+)\]\(([^)\s]+)\)/g;
+  let last = 0;
+  let match: RegExpExecArray | null;
+  while ((match = link.exec(source)) !== null) {
+    if (match.index > last) out.push({ text: source.slice(last, match.index) });
+    out.push({ text: match[1], url: toHref(match[2]) });
+    last = match.index + match[0].length;
+  }
+  if (last < source.length) out.push({ text: source.slice(last) });
+  return out;
+}
+
+// 注释是写给维护者看的，不进页面
+const body = (page.body ?? '').replace(/<!--[\s\S]*?-->/g, '');
+
+const friends: Friend[] = [];
+const rest: string[] = [];
+
+for (const raw of body.split(/\r?\n/)) {
+  const line = raw.trim();
+  if (!line) continue;
+
+  const lead = LEADING_LINK.exec(line.replace(/^[-*+]\s+/, ''));
+  if (lead) {
+    const after = line.replace(/^[-*+]\s+/, '').slice(lead[0].length);
+    friends.push({
+      name: lead[1].trim(),
+      url: toHref(lead[2].trim()),
+      desc: tidy(after) || undefined,
+    });
+  } else {
+    rest.push(line);
+  }
+}
+
+const note = rest.join(' ');
+---
+
+<Reading title={page.data.title} description={page.data.desc}>
+  <header class="page-head">
+    <p class="page-head__kicker">Links</p>
+    <h1 class="page-head__title">{page.data.title}</h1>
+    {page.data.desc && <p class="page-head__desc">{page.data.desc}</p>}
+  </header>
+
+  {
+    friends.length > 0 && (
+      <div class="friends">
+        {friends.map((f) => (
+          <a class="friends__row" href={f.url}>
+            <span class="friends__name">{f.name}</span>
+            {f.desc && <span class="friends__desc">{f.desc}</span>}
+          </a>
+        ))}
+      </div>
+    )
+  }
+
+  {
+    note && (
+      <p class="friends__note">
+        {inline(note).map((chunk) =>
+          'url' in chunk ? <a href={chunk.url}>{chunk.text}</a> : chunk.text
+        )}
+      </p>
+    )
+  }
+</Reading>
