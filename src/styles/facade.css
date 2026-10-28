@@ -55,6 +55,11 @@ html.is-home {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  /* 手机长按彩色线时，别让系统弹出"选择/另存"菜单、也别选中底下的字
+     （长按逻辑在 Hero.astro，这里只关掉浏览器自带的长按行为） */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .hero__geo::before {
@@ -107,6 +112,15 @@ html.is-home {
 .hero__art line,
 .hero__art path {
   transition: transform 240ms var(--ease-out);
+}
+
+/* will-change 只在真的开始交互后才给。常驻的话这 11 个 SVG 元素会一直各自合成一层，
+   而 vector-effect: non-scaling-stroke（下面那条）在合成层里是出了名的会"描边忽隐忽现"——
+   手机上就表现成彩色线条一闪一闪。手机没有 hover，所以那边永远不会提升图层。 */
+.hero:hover .hero__art line,
+.hero:hover .hero__art path,
+.hero__art line[style*='transform'],
+.hero__art path[style*='transform'] {
   will-change: transform;
 }
 

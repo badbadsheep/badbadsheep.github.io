@@ -44,18 +44,23 @@ const [first, ...rest] = ['badbad', 'sheep'];
     mountHero();
 
     /**
-     * 首屏两套指针交互：
+     * 首屏两套交互（鼠标），以及手机上的长按版本：
      *
      * ① 推开：几何构图轻轻向外让开，屏幕上最多 5px。
      *    每条线、方框、圆各自按"离指针越近推得越多"往反方向移位；点阵整体做轻微视差。
      *    注意：SVG 里的位移单位是 viewBox 单位，不是 CSS px（1440 宽下这张图被缩到
      *    0.681 倍），所以先按屏幕上的 5px 算，再除以缩放比换回去。
+     *    ★ 只在鼠标 / 触控笔上生效。手指没有悬停，触摸产生的 pointermove 会让 11 个
+     *      SVG 元素不停重启 240ms 的 transform 过渡 —— 手机上看起来就是线条一闪一闪。
      *
-     * ② 收缩：指针压到某条彩色线上，那条线从两端往指针下的那一点收回，0.5 秒收成一点，
+     * ② 收缩：指针压到某条彩色线上，那条线从两端往指针下的那一点收回，0.4 秒收成一点，
      *    线本身的位置不动；指针一挪开，两端原路伸回原来的长度。
      *    · A 点 = 指针在该线上的垂足（跟着指针滑）
      *    · 同一条线上的多条线一起收
      *    · 命中判定永远按**原始几何**算 —— 否则线收成点之后就再也点不到了
+     *
+     * ③ 手机长按（新增）：按住某条彩色线不动 220ms，就用②同一套把那条线收成一点；
+     *    手指挪开超过 12px（在滚页面）或松手，原路伸回。参数见下面 HOLD_MS / MOVE_TOL。
      */
     const svg = document.querySelector<SVGSVGElement>('.hero__art');
     const geo = document.querySelector<HTMLElement>('.hero__geo');
@@ -131,64 +136,130 @@ const [first, ...rest] = ['badbad', 'sheep'];
         }
       };
 
+      /** ① 推开：几何构图按"离指针越近推得越多"向外让开（最多 5px） */
+      const pushAt = (clientX: number, clientY: number): void => {
+        const m = svg.getScreenCTM();
+        if (!m) return;
+        for (const el of parts) {
+          const b = el.getBBox();
+          const ux = b.x + b.width / 2;
+          const uy = b.y + b.height / 2;
+          const cx = m.a * ux + m.c * uy + m.e;
+          const cy = m.b * ux + m.d * uy + m.f;
+          const dx = cx - clientX;
+          const dy = cy - clientY;
+          const d = Math.hypot(dx, dy) || 1;
+          const px = Math.max(0, 1 - d / 900) * 5; // 屏幕上最远 5px
+          const u = px / (m.a || 1); // 换回 viewBox 单位
+          el.style.transform = `translate(${((dx / d) * u).toFixed(2)}px, ${((dy / d) * u).toFixed(2)}px)`;
+        }
+        geo.style.setProperty('--grid-x', `${((clientX / innerWidth - 0.5) * -10).toFixed(2)}px`);
+        geo.style.setProperty('--grid-y', `${((clientY / innerHeight - 0.5) * -10).toFixed(2)}px`);
+      };
+
+      /** ② 收缩：把指针换算到 viewBox 坐标，再逐条算点到线段的距离，命中就收成一点。
+          命中判定永远按**原始几何**算 —— 否则线收成点之后就再也点不到了。 */
+      const collapseAt = (clientX: number, clientY: number): void => {
+        const m = svg.getScreenCTM();
+        if (!m) return;
+        const pt = svg.createSVGPoint();
+        pt.x = clientX;
+        pt.y = clientY;
+        const u = pt.matrixTransform(m.inverse());
+        const tol = TOL_PX / (m.a || 1);
+
+        lineEls.forEach((_, i) => {
+          const s = col[i];
+          const dx = s.x2 - s.x1;
+          const dy = s.y2 - s.y1;
+          const len2 = dx * dx + dy * dy || 1;
+          const t = Math.max(0, Math.min(1, ((u.x - s.x1) * dx + (u.y - s.y1) * dy) / len2));
+          const ax = s.x1 + dx * t;
+          const ay = s.y1 + dy * t;
+          const near = Math.hypot(u.x - ax, u.y - ay) <= tol;
+          s.hit = near;
+          if (near) {
+            s.ax = ax;
+            s.ay = ay;
+          }
+        });
+
+        kick();
+      };
+
+      const isTouch = (e: PointerEvent): boolean => e.pointerType === 'touch';
+
       let queued = 0;
 
       const onMove = (e: PointerEvent) => {
+        /* 手指不参与"跟随推开"：手机上没有悬停，触摸产生的 pointermove 会让
+           11 个 SVG 元素不停重启 240ms 的 transform 过渡，看起来就是线条一闪一闪。
+           手机改成"按住不动才收缩"，见下面的长按逻辑。 */
+        if (isTouch(e)) return;
         if (queued) return;
         queued = requestAnimationFrame(() => {
           queued = 0;
-          const m = svg.getScreenCTM();
-          if (!m) return;
-
-          // ① 推开
-          for (const el of parts) {
-            const b = el.getBBox();
-            const ux = b.x + b.width / 2;
-            const uy = b.y + b.height / 2;
-            const cx = m.a * ux + m.c * uy + m.e;
-            const cy = m.b * ux + m.d * uy + m.f;
-            const dx = cx - e.clientX;
-            const dy = cy - e.clientY;
-            const d = Math.hypot(dx, dy) || 1;
-            const px = Math.max(0, 1 - d / 900) * 5; // 屏幕上最远 5px
-            const u = px / (m.a || 1); // 换回 viewBox 单位
-            el.style.transform = `translate(${((dx / d) * u).toFixed(2)}px, ${((dy / d) * u).toFixed(2)}px)`;
-          }
-          geo.style.setProperty('--grid-x', `${((e.clientX / innerWidth - 0.5) * -10).toFixed(2)}px`);
-          geo.style.setProperty('--grid-y', `${((e.clientY / innerHeight - 0.5) * -10).toFixed(2)}px`);
-
-          // ② 收缩：把指针换算到 viewBox 坐标，再逐条算点到线段的距离
-          const pt = svg.createSVGPoint();
-          pt.x = e.clientX;
-          pt.y = e.clientY;
-          const u = pt.matrixTransform(m.inverse());
-          const tol = TOL_PX / (m.a || 1);
-
-          lineEls.forEach((_, i) => {
-            const s = col[i];
-            const dx = s.x2 - s.x1;
-            const dy = s.y2 - s.y1;
-            const len2 = dx * dx + dy * dy || 1;
-            const t = Math.max(0, Math.min(1, ((u.x - s.x1) * dx + (u.y - s.y1) * dy) / len2));
-            const ax = s.x1 + dx * t;
-            const ay = s.y1 + dy * t;
-            const near = Math.hypot(u.x - ax, u.y - ay) <= tol;
-            s.hit = near;
-            if (near) {
-              s.ax = ax;
-              s.ay = ay;
-            }
-          });
-
-          kick();
+          pushAt(e.clientX, e.clientY);
+          collapseAt(e.clientX, e.clientY);
         });
       };
 
+      /* ── 手机：长按彩色线，让它从两端收成一点（与桌面同一套 400ms / smoothstep） ──
+         · 按下先等 HOLD_MS 才收 —— 点一下屏幕不会闪一下
+         · 手指挪超过 MOVE_TOL 就当成在滚页面，取消
+         · 松手 / 被系统接管（pointercancel）时原路伸回 */
+      const HOLD_MS = 220;
+      const MOVE_TOL = 12;
+      let holdTimer = 0;
+      let holdX = 0;
+      let holdY = 0;
+      let holding = false;
+
+      const releaseHold = (): void => {
+        if (!holding) return;
+        holding = false;
+        window.clearTimeout(holdTimer);
+        holdTimer = 0;
+        col.forEach((s) => (s.hit = false));
+        kick();
+      };
+
+      const onDown = (e: PointerEvent): void => {
+        if (!isTouch(e)) return;
+        holdX = e.clientX;
+        holdY = e.clientY;
+        holding = true;
+        window.clearTimeout(holdTimer);
+        holdTimer = window.setTimeout(() => {
+          if (!holding) return;
+          collapseAt(holdX, holdY);
+        }, HOLD_MS);
+      };
+
+      const onTouchMove = (e: PointerEvent): void => {
+        if (!isTouch(e) || !holding) return;
+        if (Math.hypot(e.clientX - holdX, e.clientY - holdY) > MOVE_TOL) releaseHold();
+      };
+
+      const onUp = (e: PointerEvent): void => {
+        if (!isTouch(e)) return;
+        releaseHold();
+      };
+
       hero.addEventListener('pointermove', onMove as EventListener);
+      hero.addEventListener('pointerdown', onDown as EventListener);
+      hero.addEventListener('pointermove', onTouchMove as EventListener, { passive: true });
+      hero.addEventListener('pointerup', onUp as EventListener);
+      hero.addEventListener('pointercancel', onUp as EventListener);
+      // 长按触发后别让系统再弹出"选择/另存"菜单
+      hero.addEventListener('contextmenu', (e: Event) => {
+        if (holding) e.preventDefault();
+      });
       hero.addEventListener('pointerleave', () => {
         parts.forEach((el) => (el.style.transform = ''));
         geo.style.setProperty('--grid-x', '0px');
         geo.style.setProperty('--grid-y', '0px');
+        releaseHold();
         col.forEach((s) => (s.hit = false));
         kick();
       });

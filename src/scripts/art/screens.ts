@@ -4,48 +4,60 @@
  * ══ 要做什么 ══
  * 首页第 2–5 屏（博客 / 笔记 / 故事 / 影像）背后那张"线"，以前是四屏共用一张
  * 静态方格。现在每一屏有自己的几何：方格 → 正三角 → 正六边形 → 不规则多边形，
- * 滚动跨过两屏之间时，线会连续地挪、转、断、抖，而不是硬切。
+ * 滚动跨过两屏之间时，线会连续地转、加、抖，而不是硬切。
  *
  * ══ 怎么做到的 ══
  * 一个 sticky 在「四屏」这一段里的画布（100svh 高，滚出四屏自动让开），
  * 画布上跑一个全屏 fragment shader，四种线场都在 GPU 里算：
  *
- *   方格      两族平行线（0° 与 90°）
- *   正三角    三族平行线（0° / 60° / 120°）
+ *   方格      两族平行线（0° / 90°）
+ *   正三角    三族平行线（30° / 90° / 150°）—— 底边水平
  *   正六边形  三角晶格的 Voronoi 边界（晶格点距 56 → 边长 32.33、对边 56）
  *   不规则    同一套 Voronoi，但每个晶格点按哈希抖动
  *
- * 所以"变形"不是四套贴图硬切，而是三件真事叠在一起：
- *   ① 参数插值：角度 90°→60°、线距 56→84、抖动 0→0.62 —— 线是真的在转、在张开、在游走
- *   ② 错峰：每个像素的起始时刻由一个低频噪声决定（最多晚 0.5 个进度），
+ * 三种图案共用同一个线距（56），所以跨屏时**没有整体缩放**，线只在原地转角度
+ * （0°→30°）、加一族（权重 0→1）、换层（线族↔细胞）、抖顶点（0→0.62）。
+ *
+ * 三件真事叠在一起：
+ *   ① 参数插值：角度 0°→30°、第三族权重 0→1、抖动 0→0.62
+ *   ② 错峰：每个像素的起始时刻由一个低频噪声决定（最多晚 0.38 个进度），
  *      于是过渡像一道波浪扫过屏幕，而不是整体齐步换装（这个手感来自参考站）
- *   ③ 域扭曲：过渡中段把采样坐标按噪声推开最多 ±7px，线跟着弯一下再站直
+ *   ③ 域扭曲：过渡中段把采样坐标按噪声推开最多 ±4px，线跟着弯一下再站直
  *
  * ══ 硬约束 ══
  *   · 不引 three.js / 任何依赖，纯 WebGL2 + 一个 quad
  *   · 没有 WebGL2 / saveData → 一根手指都不碰 DOM，原来那张 CSS 静态方格照旧
  *   · prefers-reduced-motion → 仍然画（每屏还是各自的图案），但没有过渡：
- *     跨屏时直接换，不做 morph，也不接指针
- *   · 没有常驻 rAF：滚动、指针、resize、换主题才重画一次，静止时一帧都不画
- *   · 指针推开沿用首屏 hero 那一套：按径向推开，最多 5px，900px 内线性衰减
+ *     跨屏时直接换，不做 morph
+ *   · 没有常驻 rAF：滚动、resize、换主题才重画一次，静止时一帧都不画
+ *   · 不跟指针交互（首屏 hero 那套指针推留在 Hero.astro 里，与此无关）
  */
 import { readInkColor, readCssNumber, type RGB } from './tokens';
 
 /** 四种几何。数组顺序就是四个栏目的顺序。
- *  ang2 = 第二族线的角度（方格 90° → 三角 60°）
- *  w3   = 第三族线的权重（方格没有 → 三角 1）
- *  sp   = 线距（css px）。方格 56（= 原来的格子）；三角取 84 → 边长 97、线密度与方格相当
+ *
+ *  三族平行线：第 1 族固定 90°（永远是横线），第 2 族固定 150°，第 3 族角度在 ang0 里插值。
+ *    · 方格 = ang0 0°  + 第 2 族权重 0      → 只有 0° / 90° 两族 = 方格子
+ *    · 三角 = ang0 30° + 第 2 族权重 1      → 30° / 90° / 150° 三族 = 正三角，底边水平
+ *  三族线距全部相同（SP = 56 = 方格原来的格子），所以跨屏时没有"整张网缩放"，
+ *  线只会转角度、加一族，横向不会突然窜位。
+ *
+ *  ang0 = 第 3 族线的角度（方格 0° → 三角 30°）
+ *  w2   = 第 2 族线的权重（方格没有 → 三角 1）
  *  fam  = 线族层权重   wor = Voronoi 层权重
- *  jit  = 晶格点抖动（0 = 正六边形 → 0.62 = 不规则多边形） */
+ *  jit  = 晶格点抖动（0 = 正六边形 → 0.62 = 不规则多边形）
+ *
+ *  故事/影像 的 fam = 0，此时 ang0 / w2 取和笔记一样的值，免得"正在淡出的那族"半路又转角度。
+ */
 const PATTERNS = [
-  { ang2: 90, w3: 0, sp: 56, fam: 1, wor: 0, jit: 0 }, // 博客：方格
-  { ang2: 60, w3: 1, sp: 84, fam: 1, wor: 0, jit: 0 }, // 笔记：正三角
-  { ang2: 60, w3: 0, sp: 84, fam: 0, wor: 1, jit: 0 }, // 故事：正六边形
-  { ang2: 60, w3: 0, sp: 84, fam: 0, wor: 1, jit: 0.62 }, // 影像：不规则多边形
+  { ang0: 0, w2: 0, fam: 1, wor: 0, jit: 0 }, // 博客：方格
+  { ang0: 30, w2: 1, fam: 1, wor: 0, jit: 0 }, // 笔记：正三角（底边水平）
+  { ang0: 30, w2: 1, fam: 0, wor: 1, jit: 0 }, // 故事：正六边形
+  { ang0: 30, w2: 1, fam: 0, wor: 1, jit: 0.62 }, // 影像：不规则多边形
 ] as const;
 
-/** 六边形晶格的点间距：56 → 对边 56，与原来的格子同宽 */
-const CELL = 56;
+/** 线距 / 六边形晶格点间距：同一个 56，四种图案尺寸一致 */
+const SP = 56;
 /** 过渡中段的域扭曲幅度（css px，实际位移是它的一半） */
 const WARP = 8;
 /** 错峰宽度：不同区域开始变形的时刻最多错开这么多（0..1 的比例） */
@@ -63,13 +75,12 @@ out vec4 outColor;
 uniform float uDpr;
 uniform float uOriginY;   // 画布顶边在「四屏」容器里的位置（css px）
 uniform float uMorph;     // 0..1：当前这一屏 → 下一屏的进度
-uniform float uAng2A, uAng2B;
-uniform float uW3A, uW3B;
-uniform float uSpA, uSpB;
+uniform float uAng0A, uAng0B;
+uniform float uW2A, uW2B;
 uniform float uFamA, uFamB;
 uniform float uWorA, uWorB;
 uniform float uJitA, uJitB;
-uniform float uCell;
+uniform float uSp;
 uniform float uLineW;
 uniform float uLineA;
 uniform vec3 uInk;
@@ -133,42 +144,50 @@ void main() {
      把图案整体挪半个设备像素，线就落在像素中心，1.3px 该有多亮就多亮（#222）。 */
   p += 0.5 / uDpr;
 
-  /* 错峰：每个像素的起点由低频噪声决定，最多晚 ${SPREAD.toFixed(2)} 个进度 */
-  float t = 1.0;
-  if (uStatic < 0.5) {
-    t = clamp((uMorph - vnoise(p * 0.0023) * ${SPREAD.toFixed(2)}) / (1.0 - ${SPREAD.toFixed(2)}), 0.0, 1.0);
+  /* ── 两个进度，各管一件事 ──────────────────────────────────────────────
+     tg：全屏统一的进度，用来插值**几何参数**（角度、抖动）。
+         几何必须统一 —— 否则同一时刻屏幕上不同位置角度不同，直线会被"拉弯"，
+         看起来像塑料被烤化了。
+     tl：每个像素错开的进度（低频噪声决定，最多晚 SPREAD），只用来插值**权重**
+         （哪一层在、哪一族在）。波浪感全部来自这里：线的形状是一致的，
+         只是"该换的那一层"从屏幕一侧扫到另一侧。 */
+  float tg = uMorph;
+  float tl = uMorph;
+  if (uStatic > 0.5) {
+    tg = step(0.5, uMorph);
+    tl = tg;
   } else {
-    t = step(0.5, uMorph);
+    tl = clamp((uMorph - vnoise(p * 0.0023) * ${SPREAD.toFixed(2)}) / (1.0 - ${SPREAD.toFixed(2)}), 0.0, 1.0);
   }
-  t = t * t * (3.0 - 2.0 * t);
+  tg = tg * tg * (3.0 - 2.0 * tg);
+  tl = tl * tl * (3.0 - 2.0 * tl);
 
-  /* 域扭曲：两端为 0、中段最大 */
-  float amp = sin(t * 3.14159265) * uWarp * (1.0 - uStatic);
+  /* 域扭曲：两端为 0、中段最大（跟着统一进度走，整片一起轻轻弯） */
+  float amp = sin(tg * 3.14159265) * uWarp * (1.0 - uStatic);
   if (amp > 0.001) {
     vec2 w = vec2(vnoise(p * 0.0026 + 3.7), vnoise(p * 0.0026 + 11.3)) - 0.5;
     p += w * amp;
   }
 
-  float ang2 = mix(uAng2A, uAng2B, t);
-  float w3 = mix(uW3A, uW3B, t);
-  float sp = mix(uSpA, uSpB, t);
-  float famW = mix(uFamA, uFamB, t);
-  float worW = mix(uWorA, uWorB, t);
-  float jit = mix(uJitA, uJitB, t);
+  /* 几何：统一进度 */
+  float ang0 = mix(uAng0A, uAng0B, tg);
+  float jit = mix(uJitA, uJitB, tg);
+  /* 权重：错峰进度 */
+  float w2 = mix(uW2A, uW2B, tl);
+  float famW = mix(uFamA, uFamB, tl);
+  float worW = mix(uWorA, uWorB, tl);
 
-  /* 两层交替时朝相反方向错开一点，看起来是两套线在互相穿过，而不是单纯淡入淡出 */
-  vec2 slide = vec2((t - 0.5) * 14.0, 0.0);
-
+  /* 三族线的角度是固定的（90° / 150°）或者只转 30°（0°→30°），线距恒定 ——
+     所以过渡时线只在原地转/淡入淡出，不会整片横向窜位。 */
   float cov = 0.0;
   if (famW > 0.003) {
-    vec2 pf = p + slide;
-    float c0 = lineCov(familyDist(pf, 0.0, sp), uLineW);
-    float c1 = lineCov(familyDist(pf, ang2, sp), uLineW);
-    float c2 = lineCov(familyDist(pf, 120.0, sp), uLineW) * w3;
+    float c0 = lineCov(familyDist(p, ang0, uSp), uLineW);
+    float c1 = lineCov(familyDist(p, 90.0, uSp), uLineW);
+    float c2 = lineCov(familyDist(p, 150.0, uSp), uLineW) * w2;
     cov = max(cov, max(c0, max(c1, c2)) * famW);
   }
   if (worW > 0.003) {
-    vec2 f = cellNearest(p - slide, uCell, jit);
+    vec2 f = cellNearest(p, uSp, jit);
     cov = max(cov, lineCov((f.y - f.x) * 0.5, uLineW) * worW);
   }
 
@@ -254,13 +273,12 @@ export function mountScreens(): void {
     dpr: u('uDpr'),
     originY: u('uOriginY'),
     morph: u('uMorph'),
-    ang2: [u('uAng2A'), u('uAng2B')],
-    w3: [u('uW3A'), u('uW3B')],
-    sp: [u('uSpA'), u('uSpB')],
+    ang0: [u('uAng0A'), u('uAng0B')],
+    w2: [u('uW2A'), u('uW2B')],
+    sp: u('uSp'),
     fam: [u('uFamA'), u('uFamB')],
     wor: [u('uWorA'), u('uWorB')],
     jit: [u('uJitA'), u('uJitB')],
-    cell: u('uCell'),
     lineW: u('uLineW'),
     lineA: u('uLineA'),
     ink: u('uInk'),
@@ -360,19 +378,17 @@ export function mountScreens(): void {
     gl.uniform1f(U.dpr, dpr);
     gl.uniform1f(U.originY, originY);
     gl.uniform1f(U.morph, m);
-    gl.uniform1f(U.ang2[0], A.ang2);
-    gl.uniform1f(U.ang2[1], B.ang2);
-    gl.uniform1f(U.w3[0], A.w3);
-    gl.uniform1f(U.w3[1], B.w3);
-    gl.uniform1f(U.sp[0], A.sp);
-    gl.uniform1f(U.sp[1], B.sp);
+    gl.uniform1f(U.ang0[0], A.ang0);
+    gl.uniform1f(U.ang0[1], B.ang0);
+    gl.uniform1f(U.w2[0], A.w2);
+    gl.uniform1f(U.w2[1], B.w2);
+    gl.uniform1f(U.sp, SP);
     gl.uniform1f(U.fam[0], A.fam);
     gl.uniform1f(U.fam[1], B.fam);
     gl.uniform1f(U.wor[0], A.wor);
     gl.uniform1f(U.wor[1], B.wor);
     gl.uniform1f(U.jit[0], A.jit);
     gl.uniform1f(U.jit[1], B.jit);
-    gl.uniform1f(U.cell, CELL);
     gl.uniform1f(U.lineW, lineW);
     gl.uniform1f(U.lineA, lineA);
     gl.uniform3f(U.ink, ink[0], ink[1], ink[2]);
