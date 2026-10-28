@@ -76,6 +76,13 @@
   /* 首页四屏网格：静态方形底纹的格子尺寸（线本身是一段内联 SVG，见 facade.css） */
   --grid-cell: 56px;
 
+  /* 栏目屏的动态底纹（WebGL，见 scripts/art/screens.ts）
+     · 线宽 1.3px
+     · alpha 0.133 → 黑底上呈 #222；原来那张静态方格的线是 #191919，
+       对比度（WCAG 比值 1.195）提 10% = 1.314。浅色主题另给一档。 */
+  --screen-line-w: 1.3px;
+  --screen-line-a: 0.133;
+
   /* 字体栈 */
   --f-display: 'Instrument Serif', 'Smiley Sans', 'Songti SC', 'STSong', serif;
   --f-sans: ui-sans-serif, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
@@ -180,6 +187,9 @@
   --art-line: 0, 0, 0;
 
   --grid-cell: 56px;
+
+  /* 白底上把线压深：0.09 → 白底上呈 #e8e8e8，与原静态方格同样是 +10% 对比度 */
+  --screen-line-a: 0.09;
 
   /* 白底上要压深，否则青/黄两色几乎看不见（尤其黄） */
   --trail-1: #00a3c4;

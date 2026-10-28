@@ -30,3 +30,12 @@ const postsOf = (key: string) => posts.filter((p) => p.section.key === key);
     }
   </div>
 </Facade>
+
+{/* 四屏的动态底纹：每屏一种几何（方格 / 正三角 / 正六边形 / 不规则），
+    滚动跨屏时连续变形。没有 WebGL2 或省流量时它什么都不做，
+    .screens 上那张静态方格就是降级画面。 */}
+<script>
+  import { mountScreens } from '../scripts/art/screens';
+
+  mountScreens();
+</script>
