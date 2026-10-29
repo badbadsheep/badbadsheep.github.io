@@ -63,6 +63,16 @@ const WARP = 8;
 /** 错峰宽度：不同区域开始变形的时刻最多错开这么多（0..1 的比例） */
 const SPREAD = 0.38;
 
+/** 底纹相对页面的移动速度（1 = 死死贴住页面；0.5 = 慢半拍的视差层）。
+ *  方向：滚轮往下滚、页面内容往上走时，底纹也**往上**走（同向）。 */
+const PARALLAX = 0.5;
+/** 平滑时间常数（ms）：滚轮是一格一格跳的，靠这个把底纹位移抹成连续运动。
+ *  越大越"追不上"，越小越贴着滚动位置。 */
+const EASE_MS = 110;
+/** 像素预算：这张底纹是整屏像素着色。2560×1440@2x = 1470 万像素，
+ *  再快的集显也会掉帧（表现就是滚动"一顿一顿"）。超过预算就按比例降像素比。 */
+const PIXEL_BUDGET = 4.2e6;
+
 const VERT = `#version 300 es
 in vec2 aPos;
 void main() { gl_Position = vec4(aPos, 0.0, 1.0); }`;
@@ -73,7 +83,7 @@ precision highp float;
 out vec4 outColor;
 
 uniform float uDpr;
-uniform float uOriginY;   // 画布顶边在「四屏」容器里的位置（css px）
+uniform float uPhase;     // 底纹的纵向相位（css px）——由 JS 平滑后给进来
 uniform float uMorph;     // 0..1：当前这一屏 → 下一屏的进度
 uniform float uAng0A, uAng0B;
 uniform float uW2A, uW2B;
@@ -137,7 +147,9 @@ float lineCov(float d, float w) {
 }
 
 void main() {
-  vec2 p = vec2(gl_FragCoord.x / uDpr, gl_FragCoord.y / uDpr + uOriginY);
+  /* gl_FragCoord.y 是**从下往上**数的（OpenGL 规矩）。uPhase 由 JS 给：
+     滚轮往下滚时它变小，于是同一处纹样在屏幕上的高度变大 —— 也就是**跟着内容一起往上走**。 */
+  vec2 p = vec2(gl_FragCoord.x / uDpr, gl_FragCoord.y / uDpr + uPhase);
 
   /* 半个像素的相位对齐：方格的两族线正好落在整数坐标上（线距是整数 56），
      而像素中心在 x.5 处，于是每条线都被"劈"在两个像素上、只画到 72% 的浓度。
@@ -156,7 +168,9 @@ void main() {
   if (uStatic > 0.5) {
     tg = step(0.5, uMorph);
     tl = tg;
-  } else {
+  } else if (uMorph > 0.001 && uMorph < 0.999) {
+    /* 只有过渡中才需要那个低频噪声。uMorph 是 uniform，所以整个 shader 走的是同一个分支：
+       "某屏占满视口"的时候这里一次噪声都不算（省下来的正好是最常驻的状态）。 */
     tl = clamp((uMorph - vnoise(p * 0.0023) * ${SPREAD.toFixed(2)}) / (1.0 - ${SPREAD.toFixed(2)}), 0.0, 1.0);
   }
   tg = tg * tg * (3.0 - 2.0 * tg);
@@ -271,7 +285,7 @@ export function mountScreens(): void {
   const u = (name: string): WebGLUniformLocation | null => gl.getUniformLocation(program, name);
   const U = {
     dpr: u('uDpr'),
-    originY: u('uOriginY'),
+    phase: u('uPhase'),
     morph: u('uMorph'),
     ang0: [u('uAng0A'), u('uAng0B')],
     w2: [u('uW2A'), u('uW2B')],
@@ -299,27 +313,33 @@ export function mountScreens(): void {
 
   /* ── 尺寸与版面 ───────────────────────────────────────────────────────── */
   let dpr = 1;
-  let canvasH = 0;
   let screensTop = 0;
-  let containerH = 0;
   let screens: { top: number; h: number }[] = [];
-  let originY = 0;
+  /** 底纹纵向相位：target 是"跟着滚到哪儿"，shown 是平滑后真正画出来的 */
+  let phaseTarget = 0;
+  let phaseShown = 0;
+  let lastDrawAt = 0;
 
   const measure = (): void => {
     const rect = container.getBoundingClientRect();
     screensTop = rect.top + window.scrollY;
-    containerH = container.offsetHeight;
     screens = [...container.querySelectorAll<HTMLElement>('.screen')].map((el) => ({
       top: el.offsetTop,
       h: el.offsetHeight,
     }));
-    canvasH = canvas.clientHeight || window.innerHeight;
   };
 
   const resize = (): void => {
-    dpr = Math.min(window.devicePixelRatio || 1, dprCap);
-    const w = Math.max(1, Math.round(canvas.clientWidth * dpr));
-    const h = Math.max(1, Math.round(canvas.clientHeight * dpr));
+    const wCss = Math.max(1, canvas.clientWidth);
+    const hCss = Math.max(1, canvas.clientHeight);
+    /* 像素比：先按设备来，再用像素预算兜住 —— 大屏 2x 是这张底纹唯一会掉帧的情形。 */
+    let scale = Math.min(window.devicePixelRatio || 1, dprCap);
+    if (wCss * hCss * scale * scale > PIXEL_BUDGET) {
+      scale = Math.sqrt(PIXEL_BUDGET / (wCss * hCss));
+    }
+    dpr = Math.max(1, Math.min(scale, dprCap));
+    const w = Math.max(1, Math.round(wCss * dpr));
+    const h = Math.max(1, Math.round(hCss * dpr));
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
@@ -340,8 +360,21 @@ export function mountScreens(): void {
     if (lost || !inView) return;
 
     const scrollY = window.scrollY;
-    const room = Math.max(0, containerH - canvasH);
-    originY = clamp(scrollY - screensTop, 0, room);
+
+    /* ── 底纹的纵向位移 ──────────────────────────────────────────────────
+       ① 方向：滚轮往下滚 = 页面内容往上走，底纹也往上走（同一个方向）。
+          数学上就是相位取 **负**、随 scrollY 增大而变小。
+       ② 速度：乘 PARALLAX（0.5 = 慢半拍），像落在内容后面的一层，不是死贴着内容。
+       ③ 平滑：滚轮是一格一格跳的，先算出目标相位，再用时间常数 EASE_MS 追过去 ——
+          格子就不再"跟着滚轮一顿一顿"，而是连续滑。追的过程会继续排帧，追上就停。 */
+    phaseTarget = -scrollY * PARALLAX;
+    const now = performance.now();
+    const dt = lastDrawAt ? Math.min(64, now - lastDrawAt) : 16;
+    lastDrawAt = now;
+    const k = 1 - Math.exp(-dt / EASE_MS);
+    phaseShown += (phaseTarget - phaseShown) * k;
+    let easing = Math.abs(phaseTarget - phaseShown) > 0.08;
+    if (!easing) phaseShown = phaseTarget;
 
     /* 哪两屏之间、走了多少。按「屏心到屏心」算：某一屏正好占住视口时 m=0，
        下一屏占住视口时 m=1 —— 中间那段才是过渡区。 */
@@ -376,7 +409,7 @@ export function mountScreens(): void {
     const B = PATTERNS[Math.min(b, PATTERNS.length - 1)];
 
     gl.uniform1f(U.dpr, dpr);
-    gl.uniform1f(U.originY, originY);
+    gl.uniform1f(U.phase, phaseShown);
     gl.uniform1f(U.morph, m);
     gl.uniform1f(U.ang0[0], A.ang0);
     gl.uniform1f(U.ang0[1], B.ang0);
@@ -396,6 +429,9 @@ export function mountScreens(): void {
     gl.uniform1f(U.static, reduced ? 1 : 0);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // 还在"追"滚动位置的路上：继续排帧，直到追上（之后静止，一帧都不画）
+    if (easing) request();
   };
 
   function request(): void {
