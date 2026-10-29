@@ -55,11 +55,6 @@ html.is-home {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  /* 手机长按彩色线时，别让系统弹出"选择/另存"菜单、也别选中底下的字
-     （长按逻辑在 Hero.astro，这里只关掉浏览器自带的长按行为） */
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
 }
 
 .hero__geo::before {
@@ -253,7 +248,7 @@ html.is-home {
   /* 画布是 sticky 的，负 margin 会让它有机会伸出容器下沿、把页脚盖住；
      overflow: clip 只裁剪、不产生滚动容器，所以 sticky 依旧相对视口工作。 */
   overflow: clip;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Cpath d='M0 0H56M0 0V56' fill='none' stroke='%23fff' stroke-width='0.1'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Cpath d='M0 0H56M0 0V56' fill='none' stroke='%23fff' stroke-width='0.5'/%3E%3C/svg%3E");
   background-size: var(--grid-cell) var(--grid-cell);
 }
 

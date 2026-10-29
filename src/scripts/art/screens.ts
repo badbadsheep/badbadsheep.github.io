@@ -83,8 +83,10 @@ precision highp float;
 out vec4 outColor;
 
 uniform float uDpr;
+uniform vec2  uView;      // 画布 CSS 尺寸（w, h）
 uniform float uPhase;     // 底纹的纵向相位（css px）——由 JS 平滑后给进来
 uniform float uMorph;     // 0..1：当前这一屏 → 下一屏的进度
+uniform float uSwap;      // 1 = 这一趟是"线族 ↔ 细胞边界"换层（走扫带），0 = 参数变形（走错峰波浪）
 uniform float uAng0A, uAng0B;
 uniform float uW2A, uW2B;
 uniform float uFamA, uFamB;
@@ -168,9 +170,18 @@ void main() {
   if (uStatic > 0.5) {
     tg = step(0.5, uMorph);
     tl = tg;
+  } else if (uSwap > 0.5) {
+    /* 换层（线族 ↔ 细胞边界，也就是"三角 → 六边形"那一段）。
+       这一段两层是两套完全不同的线，交叉淡入淡出会让它们"各半地糊"在一起 ——
+       看起来就是六边形凭空冒出来。改成**一道斜扫带从下往上把旧层换成新层**：
+       带外永远是一层 100%、另一层 0%，带内才是混合，于是过渡看起来是"被重织了一遍"。
+       方向选自下而上，和"内容往上走"同向。 */
+    const float BAND = 0.34;               // 扫带宽度（占扫过总长的比例），越大越柔
+    float passed = (gl_FragCoord.y / uDpr * 0.86 + gl_FragCoord.x / uDpr * 0.2);
+    float span = max(uView.y * 0.86 + uView.x * 0.2, 1.0);
+    float front = uMorph * (1.0 + BAND);
+    tl = clamp((front - passed / span) / BAND, 0.0, 1.0);
   } else if (uMorph > 0.001 && uMorph < 0.999) {
-    /* 只有过渡中才需要那个低频噪声。uMorph 是 uniform，所以整个 shader 走的是同一个分支：
-       "某屏占满视口"的时候这里一次噪声都不算（省下来的正好是最常驻的状态）。 */
     tl = clamp((uMorph - vnoise(p * 0.0023) * ${SPREAD.toFixed(2)}) / (1.0 - ${SPREAD.toFixed(2)}), 0.0, 1.0);
   }
   tg = tg * tg * (3.0 - 2.0 * tg);
@@ -285,8 +296,10 @@ export function mountScreens(): void {
   const u = (name: string): WebGLUniformLocation | null => gl.getUniformLocation(program, name);
   const U = {
     dpr: u('uDpr'),
+    view: u('uView'),
     phase: u('uPhase'),
     morph: u('uMorph'),
+    swap: u('uSwap'),
     ang0: [u('uAng0A'), u('uAng0B')],
     w2: [u('uW2A'), u('uW2B')],
     sp: u('uSp'),
@@ -302,17 +315,19 @@ export function mountScreens(): void {
 
   /* ── 令牌（颜色与线宽都从 CSS 读，主题切换不用写第二套） ─────────────── */
   let ink: RGB = [1, 1, 1];
-  let lineW = 1.3;
+  let lineW = 1.5;
   let lineA = 0.133;
 
   const readTokens = (): void => {
     ink = readInkColor(container);
-    lineW = readCssNumber(container, '--screen-line-w', 1.3);
+    lineW = readCssNumber(container, '--screen-line-w', 1.5);
     lineA = readCssNumber(container, '--screen-line-a', 0.133);
   };
 
   /* ── 尺寸与版面 ───────────────────────────────────────────────────────── */
   let dpr = 1;
+  let cssW = 1;
+  let cssH = 1;
   let screensTop = 0;
   let screens: { top: number; h: number }[] = [];
   /** 底纹纵向相位：target 是"跟着滚到哪儿"，shown 是平滑后真正画出来的 */
@@ -332,6 +347,8 @@ export function mountScreens(): void {
   const resize = (): void => {
     const wCss = Math.max(1, canvas.clientWidth);
     const hCss = Math.max(1, canvas.clientHeight);
+    cssW = wCss;
+    cssH = hCss;
     /* 像素比：先按设备来，再用像素预算兜住 —— 大屏 2x 是这张底纹唯一会掉帧的情形。 */
     let scale = Math.min(window.devicePixelRatio || 1, dprCap);
     if (wCss * hCss * scale * scale > PIXEL_BUDGET) {
@@ -427,6 +444,10 @@ export function mountScreens(): void {
     gl.uniform3f(U.ink, ink[0], ink[1], ink[2]);
     gl.uniform1f(U.warp, WARP);
     gl.uniform1f(U.static, reduced ? 1 : 0);
+    gl.uniform2f(U.view, cssW, cssH);
+    /* 这一趟是"线族 ↔ 细胞边界"换层吗？（笔记→故事 / 故事→笔记）
+       是的话走斜扫带，不是的话走错峰波浪。 */
+    gl.uniform1f(U.swap, A.fam !== B.fam ? 1 : 0);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 

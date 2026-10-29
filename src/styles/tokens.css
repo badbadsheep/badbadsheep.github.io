@@ -77,10 +77,10 @@
   --grid-cell: 56px;
 
   /* 栏目屏的动态底纹（WebGL，见 scripts/art/screens.ts）
-     · 线宽 1.3px
+     · 线宽 1.5px（第一版是 1.3px，按"再加 15%" → 1.3 × 1.15 ≈ 1.5）
      · alpha 0.133 → 黑底上呈 #222；原来那张静态方格的线是 #191919，
        对比度（WCAG 比值 1.195）提 10% = 1.314。浅色主题另给一档。 */
-  --screen-line-w: 1.3px;
+  --screen-line-w: 1.5px;
   --screen-line-a: 0.133;
 
   /* 字体栈 */

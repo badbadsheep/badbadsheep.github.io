@@ -44,14 +44,12 @@ const [first, ...rest] = ['badbad', 'sheep'];
     mountHero();
 
     /**
-     * 首屏两套交互（鼠标），以及手机上的长按版本：
+     * 首屏两套交互 —— **只在电脑上**（鼠标 / 触控笔）：
      *
      * ① 推开：几何构图轻轻向外让开，屏幕上最多 5px。
      *    每条线、方框、圆各自按"离指针越近推得越多"往反方向移位；点阵整体做轻微视差。
      *    注意：SVG 里的位移单位是 viewBox 单位，不是 CSS px（1440 宽下这张图被缩到
      *    0.681 倍），所以先按屏幕上的 5px 算，再除以缩放比换回去。
-     *    ★ 只在鼠标 / 触控笔上生效。手指没有悬停，触摸产生的 pointermove 会让 11 个
-     *      SVG 元素不停重启 240ms 的 transform 过渡 —— 手机上看起来就是线条一闪一闪。
      *
      * ② 收缩：指针压到某条彩色线上，那条线从两端往指针下的那一点收回，0.4 秒收成一点，
      *    线本身的位置不动；指针一挪开，两端原路伸回原来的长度。
@@ -59,8 +57,12 @@ const [first, ...rest] = ['badbad', 'sheep'];
      *    · 同一条线上的多条线一起收
      *    · 命中判定永远按**原始几何**算 —— 否则线收成点之后就再也点不到了
      *
-     * ③ 手机长按（新增）：按住某条彩色线不动 220ms，就用②同一套把那条线收成一点；
-     *    手指挪开超过 12px（在滚页面）或松手，原路伸回。参数见下面 HOLD_MS / MOVE_TOL。
+     * ★ 手机（触屏）上两套都不做：`pointerType === 'touch'` 直接返回。
+     *   原因有两条，都是实测出来的：
+     *     · 手指没有悬停，触摸拖动产生的 pointermove 会让 11 个 SVG 元素不停重启
+     *       240ms 的 transform 过渡 —— 看起来就是彩色线条一闪一闪；
+     *     · 试过"按住不动才收缩"，可一松手/一移动线条像被砍断，观感不对。
+     *   所以手机上首屏就是一张静态矢量构图。
      */
     const svg = document.querySelector<SVGSVGElement>('.hero__art');
     const geo = document.querySelector<HTMLElement>('.hero__geo');
@@ -194,7 +196,8 @@ const [first, ...rest] = ['badbad', 'sheep'];
       const onMove = (e: PointerEvent) => {
         /* 手指不参与"跟随推开"：手机上没有悬停，触摸产生的 pointermove 会让
            11 个 SVG 元素不停重启 240ms 的 transform 过渡，看起来就是线条一闪一闪。
-           手机改成"按住不动才收缩"，见下面的长按逻辑。 */
+           手机上干脆一点动效都不做（第二版试过"按住才收缩"，实测松开/移动时线条像被
+           砍断一样，观感不对，整块撤回）。 */
         if (isTouch(e)) return;
         if (queued) return;
         queued = requestAnimationFrame(() => {
@@ -204,62 +207,11 @@ const [first, ...rest] = ['badbad', 'sheep'];
         });
       };
 
-      /* ── 手机：长按彩色线，让它从两端收成一点（与桌面同一套 400ms / smoothstep） ──
-         · 按下先等 HOLD_MS 才收 —— 点一下屏幕不会闪一下
-         · 手指挪超过 MOVE_TOL 就当成在滚页面，取消
-         · 松手 / 被系统接管（pointercancel）时原路伸回 */
-      const HOLD_MS = 220;
-      const MOVE_TOL = 12;
-      let holdTimer = 0;
-      let holdX = 0;
-      let holdY = 0;
-      let holding = false;
-
-      const releaseHold = (): void => {
-        if (!holding) return;
-        holding = false;
-        window.clearTimeout(holdTimer);
-        holdTimer = 0;
-        col.forEach((s) => (s.hit = false));
-        kick();
-      };
-
-      const onDown = (e: PointerEvent): void => {
-        if (!isTouch(e)) return;
-        holdX = e.clientX;
-        holdY = e.clientY;
-        holding = true;
-        window.clearTimeout(holdTimer);
-        holdTimer = window.setTimeout(() => {
-          if (!holding) return;
-          collapseAt(holdX, holdY);
-        }, HOLD_MS);
-      };
-
-      const onTouchMove = (e: PointerEvent): void => {
-        if (!isTouch(e) || !holding) return;
-        if (Math.hypot(e.clientX - holdX, e.clientY - holdY) > MOVE_TOL) releaseHold();
-      };
-
-      const onUp = (e: PointerEvent): void => {
-        if (!isTouch(e)) return;
-        releaseHold();
-      };
-
       hero.addEventListener('pointermove', onMove as EventListener);
-      hero.addEventListener('pointerdown', onDown as EventListener);
-      hero.addEventListener('pointermove', onTouchMove as EventListener, { passive: true });
-      hero.addEventListener('pointerup', onUp as EventListener);
-      hero.addEventListener('pointercancel', onUp as EventListener);
-      // 长按触发后别让系统再弹出"选择/另存"菜单
-      hero.addEventListener('contextmenu', (e: Event) => {
-        if (holding) e.preventDefault();
-      });
       hero.addEventListener('pointerleave', () => {
         parts.forEach((el) => (el.style.transform = ''));
         geo.style.setProperty('--grid-x', '0px');
         geo.style.setProperty('--grid-y', '0px');
-        releaseHold();
         col.forEach((s) => (s.hit = false));
         kick();
       });
