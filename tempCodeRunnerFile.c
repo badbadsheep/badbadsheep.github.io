@@ -1,50 +1,28 @@
-/*想要打印杨辉三角，需要面对一下问题：
-1 每一项怎么对齐，空格数要对。
-2 每一项怎么算。c没有组合数也没有阶乘，只能自己用循环写.可以写一个函数来简化
+/*由于最终结果要是精准的分数形式，就不能直接做除法，而是通分再加起来
+所以问题的关键在于求分母，即最小公倍数！先自己想象一个思路：
+    拿最大的数n，依次求它的1倍，2倍...每求一次，就循环拿n除以1 2 3...只要有除不尽的就换下一个n的倍数。全部除尽就取该值
 */
+# include <stdio.h>
 
-//Cmn函数：想要实现Cmn，先需要阶乘。需要让一个数从1开始依次乘到自己。先捋清楚求x的阶乘的代码：
-//  for (i=1;i<=x;i++){
-//        the_result_of_x*=i
-// 这时再来解决Cmn
-long long Cmn(int m,int n){
-    long long fac_m=1;
-    long long fac_n=1;
-    long long fac_minus=1;   //注意！变量名不能叫做(m-n)!    -是违法符号！
-    for (int i=1;i<=m;i++){
-        fac_m *=i;
-    }
-    for (int j=1;j<=n;j++){
-        fac_n *=j;
-    }
-    for (int e=1;e<=(m-n);e++){
-        fac_minus *=e;
-    }
-    long long result = fac_m/((fac_n)*(fac_minus)); //这里分母要带括号！ 因为/*平等
-    return result;
-}
-
-#include <stdio.h>
-int main(){
-    int m=0,n=0,x=0,y=0; //m是当前行数，n是用户输入的总行数，x是某一行的项的数量，y是空格数。
-    scanf("%d",&n);
-    for (m=0;m<=n;m++){
-        
-        for (y=0;y<=(n-m-1);y++){  //让y的上限卡在两倍的n-m处，从而实现打出来1前面的空格。
-            printf("  ");          //这里y<=n-m+1 ?
+long long LCM(int n){
+    for (long long k=1;k>=1;k++){  //k是几倍的n
+        for (long long i=1;i<=n;i++){  //依次拿kn去挨个除以1 2 3 4 5 ...(不要直接写kn了，是k*n！)
+            long long q = k*n % i;
+            if (q!=0)     //只要余数不为0就中断
+                break;
+            if (q==0 && i==n){         //能坚持除到第n项就暂停并返回值
+                long long result=k*n;
+                return result;       
+            }    
+        if (i == n)
+            return result;
         }
-        
-        /*现在要算出项数，先打个草稿：
-        组合数Cmn= m!/(n!)*(m-n)！ 嵌套各种循环有点繁琐，考虑定义一个函数*/
-        
-        for (int t=0;t<=m;t++){
-            printf("   %lld",Cmn(m,t));  //这里输入应该是m和t，而不是m+1,t+1
-        }                                //
-        printf("\n");
     }
 }
 
-// ------***1                  m=0 n=3  要打印6个空格
-// ----***1***1
-// --***1***2***1
-// ***1***3***3***1   
+int main(){
+    int n=0;
+    scanf("%lld",&n);
+    long long b=LCM(n);
+    printf("%lld",b);
+}
