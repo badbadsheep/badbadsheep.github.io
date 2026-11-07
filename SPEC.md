@@ -313,7 +313,9 @@ pages（about / credits）  纯正文，无 schema
 | Instrument Serif 400 | 拉丁大字、站名、英文标题 | 交办包 `design/fonts/`（OFL） | 直接自托管，normal 21KB + italic 懒加载 |
 | 得意黑 Smiley Sans（Oblique） | **只用于签名性中文字** | `scripts/fonts-src/`（OFL） | 构建前扫描源码收集字符 → 子集化 → 预计 ≤ 20KB |
 | 系统字体 | 正文中文、所有元信息 | — | `ui-sans-serif / PingFang SC / Microsoft YaHei` |
-| 等宽 | 日期、序号、代码、元信息 | — | `ui-monospace / Cascadia Mono / Consolas` |
+| 等宽 | 日期、序号、行内代码、元信息 | — | `ui-monospace / Cascadia Mono / Consolas`（`--f-mono`，全站不动） |
+| Cascadia Mono | **仅 `.code` 代码块**（含顶栏、复制、Unfold 按钮，注释除外） | fontsource（OFL） | 自托管 latin 子集 400 / 400i / 700，走 `--f-code`；中文回落 `--f-mono` |
+| Microsoft YaHei | 仅 `.code` 里的注释 | 系统字体 | `--f-comment`，强制 `font-style: normal` 正体；比例字体，注释行不再严格等宽 |
 
 **"签名性中文"的判定**：`sections.ts` / `categories.ts` 里的栏目名与分类名、页面大标题、`See More`／`更多`／`全部`／`归档`／`搜索`／`关于` 这类闸门词。约 40–60 字。
 **子集自动重建**：`pnpm fonts` 扫描 `src/**/*.{astro,md,ts}` 收集全部 CJK 字符 → 重新生成 woff2。写新文章后跑一次即可；忘记跑也不会掉字（会回落到系统宋体，不出现豆腐块）。
@@ -534,7 +536,10 @@ createScene({ canvas, tier, reduced, theme })
 
 ## 12. 代码高亮
 
-- Shiki 内置主题 `dark-plus` / `light-plus`（即 VSCode 官方配色，注释 `#6A9955` / `#008000`，够亮）
+- Shiki 内置主题 `dark-plus` / `light-plus`（VSCode 官方配色）；关键字、字符串、数字等一律保留主题原色
+- **文字层级**：代码最亮、注释退一档。`--code-fg` 深 `#F2F2F2` / 浅 `#000000`（按内联 `--shiki-dark:#D4D4D4` 精确匹配默认前景 token 与 `pre` 本身，提亮）；`--code-comment` 深 `#D0D0D0` / 浅 `#4A4A4A`（注释用雅黑显粗，必须比代码明显淡一截，否则和正文看混）。代码块内所有 token 强制 `font-style: normal` 正体
+- **注释单独改写**：正体、微软雅黑。`--f-comment` = `Microsoft YaHei / 微软雅黑`。按 Shiki 输出的内联 `--shiki-dark:#6A9955` 精确匹配注释 span，用 `!important` 同时覆盖 `color`、`font-style`、`font-family`，选择器限死在 `.code` 下；换主题时同步匹配串。雅黑是比例字体，注释行不再严格等宽——这是刻意取舍
+- **字体坑（必留）**：浏览器给 `<code>` 的 UA 样式是 `font-family: monospace`，会截断 `pre` 上的 `--f-code`，导致所有代码 span 回落到系统等宽字体，Cascadia Mono 等于白配。必须写 `.code .astro-code code { font-family: inherit }`；限定在 `.code` 下，无 JS 时的裸 pre 不受影响
 - 双主题同时输出，CSS 用 `[data-theme]` 切换 `--shiki-*` 变量
 - 行号用 CSS counter 生成（不进 DOM，减少 HTML 体积）
 - 语言标签取 `lang`，映射成显示名（`powershell` → `PowerShell`、`c` → `C`）

@@ -155,20 +155,30 @@ if ($SkipVerify) {
 
 Write-Section '3/4' '提交'
 
-$changes = @(git status --porcelain)
+# git 默认 core.quotePath=true：中文路径会被 C-style quote 成
+# "src/...\345\277\253..." 这种带引号的八进制串。拿它当路径去 Test-Path，
+# 引号在 NTFS 里是非法字符，整个脚本会直接炸。凡是 git 输出要当路径用，
+# 一律先关掉 quotePath。
+$changes = @(git -c core.quotePath=false status --porcelain)
 if ($changes.Count -eq 0) {
     Write-Ok '工作区干净，没有要提交的改动'
 } else {
     git add -A
     if ($LASTEXITCODE -ne 0) { Stop-Task 'git add 失败。' }
 
-    # 进仓库前先看一眼体量：5 MB 以上的文件基本都不该在这里
-    $staged = @(git diff --cached --name-only)
+    # 进仓库前先看一眼体量：5 MB 以上的文件基本都不该在这里。
+    # -c core.quotePath=false 不能删 —— 中文文件名否则会变成带引号的转义串。
+    $staged = @(git -c core.quotePath=false diff --cached --name-only)
     $big = @()
     foreach ($file in $staged) {
-        if (Test-Path -LiteralPath $file) {
-            $length = (Get-Item -LiteralPath $file).Length
-            if ($length -gt 5MB) { $big += ('{0} （{1:N1} MB）' -f $file, ($length / 1MB)) }
+        # 文件名含控制字符时 git 仍可能 quote；体积检查不该把发布流程带崩
+        try {
+            if (Test-Path -LiteralPath $file) {
+                $length = (Get-Item -LiteralPath $file).Length
+                if ($length -gt 5MB) { $big += ('{0} （{1:N1} MB）' -f $file, ($length / 1MB)) }
+            }
+        } catch {
+            Write-Warn "  跳过体积检查（路径无法解析）：$file"
         }
     }
     if ($big.Count -gt 0) {

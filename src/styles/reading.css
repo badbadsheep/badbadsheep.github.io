@@ -672,14 +672,18 @@ html.is-toc-dragging .toc-panel {
   tab-size: 2;
 }
 
+/* 只有被 reading.ts 包装过的 .code（就是带 Unfold/Fold 的那个组件）换字体。
+   裸 pre、行内 code、正文与界面上的英文继续用 --f-mono，一个字母都不动。 */
 .code {
   margin-block: 1.8em;
   border: var(--hairline) solid var(--line);
+  font-family: var(--f-code);
 }
 
 .code pre {
   margin: 0;
   border: 0;
+  font-family: var(--f-code);
 }
 
 .code__bar {
@@ -690,7 +694,7 @@ html.is-toc-dragging .toc-panel {
   padding-inline: var(--s-3);
   border-bottom: var(--hairline) solid var(--line);
   background: var(--bg-2);
-  font-family: var(--f-mono);
+  font-family: var(--f-code);
   font-size: var(--t-xs);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -763,7 +767,7 @@ html.is-toc-dragging .toc-panel {
   border: var(--hairline) solid var(--line-2);
   background: var(--code-solid);
   color: var(--fg);
-  font-family: var(--f-mono);
+  font-family: var(--f-code);
   font-size: var(--t-xs);
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -826,6 +830,14 @@ html.is-toc-dragging .toc-panel {
   counter-reset: bbs-line;
 }
 
+/* 字体修复：浏览器给 <code> 的 UA 样式是 font-family: monospace，
+   它会截断 pre 上声明的字体栈 —— 不显式继承的话，所有代码 span 都回落到
+   系统等宽字体，Cascadia Mono 等于白配。限定在 .code 下：
+   无 JS 时的裸 pre 保持原样，一个字都不动。 */
+.code .astro-code code {
+  font-family: inherit;
+}
+
 .astro-code .line {
   display: block;
   white-space: pre;
@@ -859,6 +871,36 @@ html.is-toc-dragging .toc-panel {
 
 [data-theme='light'] .astro-code {
   border-color: var(--line);
+}
+
+/* ── 代码主体：提亮 + 一律正体 ──────────────────────────────────────────
+   默认前景 token（pre 本身也算）在 dark-plus 里是 #D4D4D4，偏灰；
+   提到 --code-fg，让代码比注释更醒目。彩色 token 各有自己的 --shiki-dark 值，
+   命中不了这条，配色仍是 VSCode 原样。
+   另外把整个代码块钉成正体：Shiki 某些语言/主题会给 token 带 italic。 */
+.code .astro-code[style*='--shiki-dark:#D4D4D4' i],
+.code .astro-code span[style*='--shiki-dark:#D4D4D4' i] {
+  color: var(--code-fg) !important;
+}
+
+.code .astro-code,
+.code .astro-code span {
+  font-style: normal !important;
+}
+
+/* ── 注释：正体 · 浅灰/深灰 · 微软雅黑 ──────────────────────────────────
+   Shiki 双主题把颜色写死在 span 的内联 style 上，注释固定是
+   color:#008000;--shiki-dark:#6A9955。按这段串精确匹配，再用 !important
+   一次压过三样东西：内联 color、上面 [data-theme='dark'] 那条 color 规则、
+   以及同段的 font-style: var(--shiki-dark-font-style)（它给某些语言带斜体）。
+   font-family 也一起强制，否则注释会继承 Cascadia Mono 的等宽字形。
+   选择器限死在 .code 下 —— 裸 pre、行内代码、站点别处一个字都不受影响。
+   日后换 Shiki 主题，只需同步这里的匹配串；配色与字体只在 tokens.css 里改。 */
+.code .astro-code span[style*='--shiki-dark:#6A9955' i],
+.code .astro-code span[style*='--shiki-dark:#6A9955' i] span {
+  color: var(--code-comment) !important;
+  font-style: normal !important;
+  font-family: var(--f-comment) !important;
 }
 
 /* ── 提示框（原来 Material 的 !!! tip） ────────────────────────────────── */

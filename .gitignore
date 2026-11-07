@@ -29,3 +29,5 @@ astro-handoff.zip
 .DS_Store
 Thumbs.db
 desktop.ini
+# Windows 快捷方式：指向本机路径，拖进 src/content/ 纯属误操作
+*.lnk

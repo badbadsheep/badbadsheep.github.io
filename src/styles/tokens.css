@@ -47,6 +47,42 @@
   src: url('/fonts/smiley-sans-subset.woff2') format('woff2');
 }
 
+/* Cascadia Mono：只给阅读区的 .code 代码块用，自托管 latin 子集（SIL OFL）。
+   不写进 --f-mono —— 站内日期、元信息、行内代码、界面上的英文一概不跟着换。
+   许可见 public/fonts/LICENSE-CascadiaMono-OFL.txt。 */
+@font-face {
+  font-family: 'Cascadia Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/cascadia-mono-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Cascadia Mono';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/cascadia-mono-latin-400-italic.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Cascadia Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/cascadia-mono-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 /* ── 令牌 ─────────────────────────────────────────────────────────────── */
 :root {
   color-scheme: dark;
@@ -64,6 +100,13 @@
   /* 代码块的"实底"色：必须和 Shiki 主题自带的背景一致，
      否则折叠时的渐隐会露出一块色差。dark-plus 是 #1E1E1E，light-plus 是 #FFFFFF。 */
   --code-solid: #1e1e1e;
+
+  /* 代码块文字层级：代码最亮，注释再退一档。
+     雅黑中文比等宽拉丁显粗，注释必须比代码明显淡一截才不会和正文看混。
+     注释只作用于 .code 里的注释 token，关键字/字符串/数字等一律保留 VSCode 原色。 */
+  --code-comment: #d0d0d0;
+  /* 默认前景 token 的提亮色。dark-plus 原本是 #D4D4D4，偏灰。 */
+  --code-fg: #f2f2f2;
 
   /* 颜色入口：想上色就改这两行 */
   --accent: var(--fg);
@@ -89,6 +132,12 @@
     'Microsoft YaHei', 'Noto Sans SC', sans-serif;
   --f-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'JetBrains Mono', Consolas,
     'Courier New', monospace;
+  /* 代码块专用：Cascadia Mono 打头，汉字与子集外的字符回落到原来的等宽栈。
+     只在 .code 里引用，绝不覆盖 --f-mono。 */
+  --f-code: 'Cascadia Mono', var(--f-mono);
+  /* 注释专用：正体微软雅黑。雅黑是比例字体，注释行不再严格等宽 —— 这是要求的取舍。
+     只在 .code 的注释 span 上引用，别处不受影响。 */
+  --f-comment: 'Microsoft YaHei', '微软雅黑', var(--f-sans);
 
   /* 字阶（流体） */
   --t-mega: clamp(3rem, 1rem + 13vw, 13rem);
@@ -182,6 +231,9 @@
   --fg-3: #6b6b6b;
 
   --code-solid: #ffffff;
+  /* 浅色反过来：代码纯黑最重，注释同步再淡一档（白底上纯白会整段消失） */
+  --code-comment: #4a4a4a;
+  --code-fg: #000000;
 
   --art-ink: 0, 0, 0;
   --art-line: 0, 0, 0;
