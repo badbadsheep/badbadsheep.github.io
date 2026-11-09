@@ -193,6 +193,7 @@ git push -u origin main
 |---|---|
 | `fatal: not a git repository` | 不在工程目录，或仓库没初始化。双击 `push.cmd` 会自动处理 |
 | `Authentication failed` / `403` | 凭据过期。控制面板 → 凭据管理器 → Windows 凭据 → 删掉 `git:https://github.com`，再推一次重新登录 |
+| `Recv failure: Connection was reset` / 连不上 GitHub | 网络层问题，不是代码坏了。脚本会明确报「远程不可达」并停下，**本地提交已经做好，没丢**。看原文：`git ls-remote origin HEAD`；有本地代理就 `git config --global http.proxy http://127.0.0.1:<端口>`；否则等网络恢复后直接重跑 `push.cmd` |
 | `Updates were rejected because the remote contains work…` | 远程有别人的提交（同一祖先）。脚本会自动 rebase 重试；还失败就手动解决冲突 |
 | 脚本报「远程的 main 和本地没有共同祖先」 | 这个地址上是个无关的旧仓库。旧站不要了用 `push.cmd -Force`；想留着旧历史就 `git pull --allow-unrelated-histories origin main` |
 | 仓库卡在 rebase／一堆 `AA` 冲突 | 上次 rebase 没做完。`git rebase --abort` 回到 rebase 之前，再决定走法；不要在上面继续叠操作 |

@@ -76,9 +76,41 @@ function Write-Bad([string]$Text) {
 function Stop-Task([string]$Text) {
     Write-Host ''
     Write-Host "  失败：$Text" -ForegroundColor Red
-    Write-Host '  没有提交、也没有推送。修好上面的问题再跑一次。' -ForegroundColor Red
+    Write-Host '  流程已停下，没有继续推送。按上面的提示处理完，再跑一次 push.cmd。' -ForegroundColor Red
     Write-Host ''
     exit 1
+}
+
+# PowerShell 5.1 的坑：native command 的 stderr 一旦被重定向（哪怕 2>$null），
+# 就会被包装成 NativeCommandError；脚本全局是 $ErrorActionPreference='Stop'，
+# 于是 git 一句「Connection was reset」能把整个发布流程当场砸停。
+# 这里局部降级，让失败只体现在 $script:GitExit，stdout 照常返回。
+function Invoke-GitQuiet {
+    param([string[]]$Arguments)
+    $old = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $out = & git @Arguments 2>$null
+        $script:GitExit = $LASTEXITCODE
+        return $out
+    } finally {
+        $ErrorActionPreference = $old
+    }
+}
+
+function Test-RemoteReachable {
+    Invoke-GitQuiet @('ls-remote', 'origin', 'HEAD') | Out-Null
+    return ($script:GitExit -eq 0)
+}
+
+function Stop-Network([string]$Where) {
+    Write-Bad "连不上 GitHub（$Where）。这是网络层问题，不是代码或仓库坏了。"
+    Write-Bad '  想看 git 原文：git ls-remote origin HEAD'
+    Write-Bad '  常见原因：连接被重置 / 代理没开 / 认证失效 / GitHub 暂时不可达。'
+    Write-Bad '  有本地代理：git config --global http.proxy http://127.0.0.1:<端口>'
+    Write-Bad '  本地提交已经做好，没丢。网络恢复后直接重跑 push.cmd 即可；'
+    Write-Bad '  它会把没推的提交送上去（期间改过文件就顺带再生成一个 commit）。'
+    Stop-Task '远程不可达，没有推送。'
 }
 
 # ---------------------------------------------------------------- 1. 环境
@@ -96,7 +128,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $Root '.git'))) {
     Write-Ok '这不是一个 git 仓库，已初始化（分支 main）'
 }
 
-$branch = (git symbolic-ref --short HEAD 2>$null)
+$branch = [string](Invoke-GitQuiet @('symbolic-ref', '--short', 'HEAD'))
 # 全新仓库还没有任何提交时，rev-parse --abbrev-ref HEAD 返回的是字面量 "HEAD"，
 # 只有 symbolic-ref 能拿到还没出生的分支名（main）。少了这层兜底，第一次发布会卡在这里。
 if ([string]::IsNullOrWhiteSpace($branch)) {
@@ -208,17 +240,21 @@ foreach ($state in '.git\rebase-merge', '.git\rebase-apply', '.git\MERGE_HEAD') 
     }
 }
 
+# 先探一下远程通不通。网络故障时直接往下走，push 失败会被误判成
+# 「远程有新提交」，接着去 pull --rebase，最后甩一句假的「有冲突」。
+if (-not (Test-RemoteReachable)) { Stop-Network '连通性探测失败' }
+
 # 远程已有 main 时，先看两边是不是同一个祖先。
 # 不是的话（最典型：把老仓库当成了远程）绝对不能 rebase ——
 # 那会把本地每个提交逐个叠到无关历史上，每个都撞冲突，仓库直接卡死。
-git fetch --quiet origin main 2>$null
-$remoteLine = [string](git ls-remote --heads origin main 2>$null)
+Invoke-GitQuiet @('fetch', '--quiet', 'origin', 'main') | Out-Null
+$remoteLine = [string](Invoke-GitQuiet @('ls-remote', '--heads', 'origin', 'main'))
 $hasRemoteBranch = -not [string]::IsNullOrWhiteSpace($remoteLine)
 
 $unrelated = $false
 if ($hasRemoteBranch) {
-    git merge-base main origin/main 2>$null | Out-Null
-    if ($LASTEXITCODE -ne 0) { $unrelated = $true }
+    Invoke-GitQuiet @('merge-base', 'main', 'origin/main') | Out-Null
+    if ($script:GitExit -ne 0) { $unrelated = $true }
 }
 
 if ($unrelated -and -not $Force) {
@@ -238,17 +274,21 @@ if ($unrelated) {
     Write-Warn '远程历史与本地无关：按 -Force 用本地覆盖远程 main'
     git push --force-with-lease -u origin main
     if ($LASTEXITCODE -ne 0) {
+        if (-not (Test-RemoteReachable)) { Stop-Network '强制推送时连接断开' }
         Write-Bad '覆盖失败。如果提示 stale info，说明远程刚又被改过，重跑一次即可。'
         Stop-Task '推送失败。'
     }
 } else {
     git push -u origin main
     if ($LASTEXITCODE -ne 0) {
+        # 先分清是网络断了，还是远程真有新提交 —— 网络故障不该被当成冲突
+        if (-not (Test-RemoteReachable)) { Stop-Network '推送时连接断开' }
         # 远程有新的提交（同一祖先）：同步一次再推，冲突就交给人工
         Write-Warn '推送被拒绝，先和远程同步（pull --rebase）再试一次'
         git pull --rebase origin main
         if ($LASTEXITCODE -ne 0) {
-            Write-Bad '同步失败，是有冲突需要手动解决：'
+            if (-not (Test-RemoteReachable)) { Stop-Network '同步时连接断开' }
+            Write-Bad '同步失败：可能是冲突，也可能是认证 / 权限问题：'
             Write-Bad '  git status  →  改完冲突文件  →  git add <文件>  →  git rebase --continue'
             Write-Bad '  想放弃这次同步：git rebase --abort'
             Write-Bad '  （如果这时候看到 "The batch file cannot be found"，是 rebase 把 push.cmd'
@@ -257,6 +297,7 @@ if ($unrelated) {
         }
         git push -u origin main
         if ($LASTEXITCODE -ne 0) {
+            if (-not (Test-RemoteReachable)) { Stop-Network '再次推送时连接断开' }
             Write-Bad '还是推不上去。把上面 git 的原文发我，或对照 README 第十节 10.5 的报错表。'
             Stop-Task '推送失败。'
         }
