@@ -1,5 +1,7 @@
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
+import { satteri } from '@astrojs/markdown-satteri';
+import { katexPlugin } from './scripts/lib/katex-plugin.mjs';
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -161,6 +163,12 @@ export default defineConfig({
   ],
 
   markdown: {
+    // 数学公式：Sätteri 负责把 $...$ / $$...$$ 解析成 math 节点，
+    // katexPlugin 负责在构建期渲染成静态 HTML（页面不加载数学 JS）
+    processor: satteri({
+      features: { math: true },
+      mdastPlugins: [katexPlugin],
+    }),
     // 双主题：dark-plus / light-plus 就是 VSCode 官方配色
     shikiConfig: {
       themes: { dark: 'dark-plus', light: 'light-plus' },

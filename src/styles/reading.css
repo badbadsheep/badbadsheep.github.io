@@ -410,6 +410,19 @@ html.is-toc-dragging .toc-panel {
   margin-top: 1.4em;
 }
 
+/* 数学公式：KaTeX 自带字形 CSS，这里只补正文版面
+   —— 块级公式允许横向滚动，手机上长公式才不会撑破栏宽 */
+.prose .katex {
+  font-size: 1.05em;
+}
+
+.prose .katex-display {
+  margin-block: 1.6em;
+  padding-block: 0.2em;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 .prose h2,
 .prose h3,
 .prose h4 {

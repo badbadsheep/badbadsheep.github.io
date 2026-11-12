@@ -1042,12 +1042,14 @@ int jc(int n) {
 ```
 
 2. 单纯求组合数可以不用阶乘,可以用递推从n=0算起：
-$$
-C_m^n
-=
-C_m^{n-1}\cdot\frac{m-n+1}{n}
-\qquad (n\ge 1)
-$$
+
+   $$
+   C_m^n
+   =
+   C_m^{n-1}\cdot\frac{m-n+1}{n}
+   \qquad (n\ge 1)
+   $$
+
 故已知m n时：
 ```c
 int result=1;
