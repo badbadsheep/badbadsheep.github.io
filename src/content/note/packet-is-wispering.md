@@ -4,7 +4,7 @@ date: 2026-11-18
 authors:
   - badbadsheep
 tags: [Packet Analysis]
-draft: true
+draft: false
 summary: pcap！？pcapng！！？？
 ---
 
@@ -18,7 +18,7 @@ summary: pcap！？pcapng！！？？
 >来源：ISCTF2026 MISC （2026/11/18）
 
 拖入wireshark的一瞬间是这样：
-![](../../assets/images/2026-11-18-11-08-46.png)
+![](../../assets/images/2026-11-18-21-57-23.png)
 
 ## 协议解析框（协议树）
 
