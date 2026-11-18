@@ -8,8 +8,6 @@ draft: false
 summary: pcap！？pcapng！！？？
 ---
 
-# 流量分析！？
-
 # wireshark界面简析
 
 第一次做流量题，听说wireshark是分析流量的利器？但打开wireshark的一瞬间很懵，中文菜单栏和英文协议解析鱼龙混杂，五颜六色细长条铺满屏幕...不妨先随便挑一个题，边查边做，生啃硬做，学习一下wireshark的界面。
