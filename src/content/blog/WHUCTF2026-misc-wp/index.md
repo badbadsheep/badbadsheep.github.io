@@ -1,5 +1,5 @@
 ---
-title: WHUCTF2026新生赛-Misc方向思路复现
+title: WHUCTF2026新生赛-Misc-WP
 date: 2026-10-25
 authors:
   - badbadsheep
