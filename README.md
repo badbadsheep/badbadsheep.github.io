@@ -16,6 +16,7 @@
 | 首页第一屏 | `src/components/facade/Hero.astro` + `src/styles/facade.css` |
 | 首页第一屏的动效 | `src/scripts/art/index.ts`（现在是空的，见第七节） |
 | 文章页排版 | `src/styles/reading.css` |
+| 写一篇新文章的完整流程 | [docs/writing-a-post.md](docs/writing-a-post.md) |
 
 设计约定与取舍记录在 [SPEC.md](SPEC.md)。
 
@@ -38,6 +39,8 @@ summary: 一句话摘要，会出现在列表与气泡里。
 - `title` 可以不写：会取正文第一个 `#` 标题，再不行用文件名
 - `summary` 可以不写：会取正文首段前 120 字
 - `draft: true` 时本地可见、`pnpm build` 不包含
+
+新建、粘图、放附件、草稿转正、提交前自检的完整流程见 [docs/writing-a-post.md](docs/writing-a-post.md)。
 
 ## 常见语法
 
@@ -92,11 +95,33 @@ $$
 
 ## 插入图片
 
-图片储存在 `src/assets/images/`，正文里用相对路径引用：
+一篇文章一个文件夹：**图片放里面的 `images/`，附件直接放文件夹里**。
 
 ```markdown
-![](../../assets/images/xxx.png)
+![](images/xxx.png)
+
+[附件.zip](./附件.zip)
 ```
+
+```
+src/content/blog/20261025-WHUCTF-2026-wp/
+├── index.md        ← 正文
+├── images/         ← 图都在这
+│   └── xxx.png
+└── 附件.zip         ← 非图片附件
+```
+
+这么放的理由：打开文件夹第一眼就能看到 `index.md`，不用在几十张截图里翻；
+整篇（连图）仍然可以打包发给别人；拆篇 = 挪文件夹；删文章时图和文一起走，
+不会在别处留下孤儿文件。**图片仍然走资产管线**（构建时转 WebP、带宽高和懒加载），
+只是从"全局一个池子"变成"跟着文章走"。
+
+非图片附件（zip、ogg、wav、pcapng…）由 `scripts/lib/post-assets.mjs` 在构建结束时
+复制到页面目录，所以正文里 `./附件.zip` 上线就是对的路径。dev 下由中间件从源码直出。
+
+> 文件名别带空格：粘贴插件会把它编码成 `%20`，`pnpm images` 会报找不到。
+
+`images/` 不用手工建：Ctrl+Alt+V 第一次粘贴时会自动创建（插件里有 `ensureDir`）。
 
 如果想要并排放置两张图片，用一个 `div` 把图片包起来：
 
@@ -105,9 +130,9 @@ $$
 ```markdown
 <div class="figures w-xx">
 
-![](../../assets/images/a.png)
+![](images/a.png)
 
-![](../../assets/images/b.png)
+![](images/b.png)
 
 </div>
 ```
@@ -117,9 +142,7 @@ $$
 ```markdown
 <div class="figures w-66">
 
-![](../../assets/images/a.png)
-
-![](../../assets/images/b.png)
+![](images/a.png)
 
 </div>
 ```
@@ -135,19 +158,23 @@ $$
 
 下面的操作每一步都不能漏：
 
-**1. 删掉文件**
+**1. 删掉整个文件夹**
 
 ```powershell
-Remove-Item src\content\note\要删的那篇.md
+Remove-Item src\content\note\要删的那篇 -Recurse
 ```
 
-**2. 清掉图片**
+图和附件都在里面，一起没了 —— 这就是"一篇文章一个文件夹"最省事的地方。
+
+**2. 查有没有留下孤儿图**
 
 ```powershell
 pnpm images:unused
 ```
 
-**4. 检查有没有别的内容链到它**
+只对该单独换过图的文章有意义。删整个文件夹的情况不会留孤儿。
+
+**3. 检查有没有别的内容链到它**
 
 ```powershell
 pnpm build
@@ -156,7 +183,7 @@ pnpm links
 
 如果别的文章正文里写了 `[...](/notes/要删的那篇/)`，这里会报死链并指出文件行号。
 
-**5. 一次过全查**
+**4. 一次过全查**
 
 ```powershell
 pnpm verify
@@ -251,8 +278,11 @@ YAML 读到的是 `null`，而 `typeof null === 'object'`，所以报错写成"�
 **`pnpm dev` 起得来，但点进文章 404**
 同上：那是老仓库 `web/` 里的旧门面，不是这个工程。
 
-**构建报 `slug 与文件名不一致`**
-front matter 里的 `slug` 必须和文件名一样。改 slug 等于换网址，会让旧链接失效 —— 所以这里是硬报错。
+**构建报 `slug 与文件夹名不一致`**
+front matter 里的 `slug` 必须和**文件夹名**一样（一篇文章一个文件夹，文件夹名就是网址里的 slug）。改它等于换网址，会让旧链接失效 —— 所以这里是硬报错。
+
+**附件点了 404**
+非图片附件靠 `scripts/lib/post-assets.mjs` 在构建时复制到文章页目录，前提是文件真的在**这篇 md 的同一个文件夹**里、正文写的是 `./文件名`。`pnpm links` 会把它抓出来（构建产物里找不到那个文件）。
 
 **代码块没有高亮**
 语言标记要小写：`c`、`js`、`powershell`。写成 `C`、`JS` 会退化成纯文本。

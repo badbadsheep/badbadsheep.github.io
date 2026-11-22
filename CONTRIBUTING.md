@@ -53,9 +53,12 @@ pnpm verify
 |---|---|
 | **URL 一旦发布不再改** | 改了就在 `astro.config.mjs` 的 `redirects` 里补一条旧地址 → 新地址，别让旧链接 404 |
 | **新写中文标题，跑 `pnpm fonts`** | 中文展示字体是按「源码里出现过的字」切的子集，不跑新字会回落到宋体，一个标题里两种字体 |
-| **正文图片用相对路径 `../../assets/images/x.png`** | 从 `src/content/<栏目>/x.md` 到 `assets/` 正好是 `../../`，构建时会转 WebP 并带上宽高 |
-| **`slug` 必须和文件名一致** | 不一致等于换网址，`astro check` 里是硬报错 |
+| **一篇文章一个文件夹，图片放 `images/`，附件跟 md 同级** | 打开文件夹第一眼能看到 `index.md`；整篇能直接打包发给别人；zip/音频这类非图片文件由 `scripts/lib/post-assets.mjs` 复制到线上同一路径 |
+| **`slug` 必须和文件夹名一致** | 文件夹名就是网址里的 slug，不一致等于换网址，`astro check` 里是硬报错 |
 | **代码块语言标记要小写** | `c` / `js` / `powershell`，写 `C` 会退化成纯文本 |
+
+从新建到发布的完整流程（新建 → 粘图 → 附件 → 草稿转正 → 自检 → 从飞书文档导入）见
+[docs/writing-a-post.md](docs/writing-a-post.md)。
 
 ---
 

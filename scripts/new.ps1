@@ -1,14 +1,18 @@
-﻿<#
+<#
 .SYNOPSIS
     新建一篇内容（博客 / 笔记 / 故事 / 影像），并在 VS Code 里打开。
 
 .DESCRIPTION
     一个入口覆盖四类内容 —— 差别只是「放哪个目录 + 用哪个模板」：
 
-      -Section blog      src/content/blog/<slug>.md
-      -Section note      src/content/note/<slug>.md
-      -Section story     src/content/story/<slug>.md
-      -Section gallery   src/content/gallery/<slug>.md   （用 -Category / -Year / -Medium）
+      -Section blog      src/content/blog/<slug>/index.md
+      -Section note      src/content/note/<slug>/index.md
+      -Section story     src/content/story/<slug>/index.md
+      -Section gallery   src/content/gallery/<slug>/index.md   （用 -Category / -Year / -Medium）
+
+    ★ 一篇文章一个文件夹：图片丢进 <slug>\images\（Ctrl+Alt+V 会自动建目录），
+      zip / 音频这类附件丢进 <slug>\ 根目录，正文都用相对路径引用。
+      文件夹名 = 网址里的 slug，所以别随手改文件夹名（改了等于换网址）。
 
     新建的内容一律是草稿（draft: true）：本地能看，构建产物里没有。
     写完要发布：.\scripts\new.ps1 -Publish -Slug <slug>
@@ -65,10 +69,15 @@ $targets = @{
 # ── 草稿转正 ──────────────────────────────────────────────────────────────
 if ($Publish) {
     if (-not $Slug) { throw '转正需要指定 -Slug（文件名，不含 .md）' }
-    $hit = Get-ChildItem $contentRoot -Recurse -Filter "$Slug.md" -File -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notlike '*\pages\*' } |
+    $hit = Get-ChildItem $contentRoot -Recurse -File -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.FullName -notlike '*\pages\*' -and (
+                $_.Name -eq "$Slug.md" -or
+                ($_.Name -eq 'index.md' -and $_.Directory.Name -eq $Slug)
+            )
+        } |
         Select-Object -First 1
-    if (-not $hit) { throw "找不到：$Slug.md" }
+    if (-not $hit) { throw "找不到：$Slug/index.md（或旧的 $Slug.md）" }
 
     $text = [System.IO.File]::ReadAllText($hit.FullName, [System.Text.UTF8Encoding]::new($false))
     if ($text -notmatch '(?m)^draft:\s*true') {
@@ -101,13 +110,19 @@ if (-not $Slug) {
 }
 $Slug = $Slug.Trim().ToLower()
 
-$dir = Join-Path $contentRoot $target.Dir
-$file = Join-Path $dir "$Slug.md"
+# 每篇一个文件夹：<栏目>/<slug>/index.md，图片附件跟 md 同级
+$dir = Join-Path (Join-Path $contentRoot $target.Dir) $Slug
+$file = Join-Path $dir 'index.md'
 $templateFile = Join-Path $templates $target.Template
 
 if (-not (Test-Path $templateFile)) { throw "找不到模板：$templateFile" }
 if ((Test-Path $file) -and -not $Force) {
-    throw "文件已存在：$file`n想覆盖就加 -Force，或换一个 -Slug。"
+    throw "已经存在：$file`n想覆盖就加 -Force，或换一个 -Slug。"
+}
+# 旧结构（平铺的 <slug>.md）如果还在，会和新文件夹撞出重复 id
+$legacy = Join-Path (Join-Path $contentRoot $target.Dir) "$Slug.md"
+if (Test-Path $legacy) {
+    throw "旧结构文件还在：$legacy`n先跑 node scripts/migrate-to-folders.mjs，或手动把它挪进 $Slug/ 并改名 index.md。"
 }
 
 # ── 占位替换 ─────────────────────────────────────────────────────────────

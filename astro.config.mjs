@@ -2,6 +2,8 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import { satteri } from '@astrojs/markdown-satteri';
 import { katexPlugin } from './scripts/lib/katex-plugin.mjs';
+import { postAssets } from './scripts/lib/post-assets.mjs';
+import { SECTIONS } from './src/data/sections.ts';
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -160,6 +162,10 @@ export default defineConfig({
       filter: (page) => !page.includes('/404') && !page.includes('/proto/'),
     }),
     liveFontSubset(),
+    // 每篇文章一个文件夹：把 md 旁边的 zip / ogg / wav 之类复制到文章页目录，
+    // 这样正文里 `[附件.zip](./附件.zip)` 才不是死链。图片仍然走资产管线，不经过这里。
+    // sections 直接从 data/sections.ts 传进来 —— 目标路径的 URL 前缀只在那里定义一次。
+    postAssets({ sections: SECTIONS }),
   ],
 
   markdown: {

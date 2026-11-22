@@ -15,7 +15,8 @@ public/fonts/smiley-sans-subset.woff2
 .shots/
 
 # 编辑器与本地工具
-.vscode/
+# 注意写成 .vscode/* 而不是 .vscode/：整目录忽略时，下面的 ! 反选对目录内的文件无效
+.vscode/*
 !.vscode/settings.json
 .idea/
 *.log

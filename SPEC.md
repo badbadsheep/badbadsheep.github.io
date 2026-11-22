@@ -552,15 +552,42 @@ createScene({ canvas, tier, reduced, theme })
 
 | 项 | 决定 |
 |---|---|
-| 存放 | 文章插图 `src/assets/images/`；图标/头像/字体 `public/` |
-| 正文引用 | 保持相对路径 `../../assets/images/x.png`。**`src/content/notes/a.md` 到 `src/assets/images/x.png` 恰好也是 `../../`，所以正文路径一个字都不用改** |
-| 优化 | `astro:assets` 生成 AVIF/WebP + srcset，宽 400/800/1200 |
+| 存放 | **一篇文章一个文件夹**：`src/content/<栏目>/<slug>/`。图片进里面的 `images/`，非图片附件跟 `index.md` 同级。`src/assets/images/` 只留跨文章共用与历史遗留；图标/头像/字体仍在 `public/` |
+| 正文引用 | `images/x.png`。图片照旧走同一条资产管线（输出 `/_astro/<名>.<hash>.webp`、带宽高与 `loading="lazy"`；**没有 srcset**），只是文件位置跟着文章走 |
+| 非图片附件 | `./附件.zip`、`./x.ogg` 由 `scripts/lib/post-assets.mjs` 在 `astro:build:done` 复制到 `dist<文章 URL>/`；dev 下由同一集成的中间件从源码直出 |
+| 优化 | `astro:assets` 转 WebP，保留原宽高比；单张 `src`，不生成多档 srcset（实测 105 张图 0 个 srcset） |
 | 首图 | 不设懒加载障碍；正文图 `loading="lazy"` + `decoding="async"` |
 | 灯箱 | 点缩略图开原图，`<dialog>` 实现 |
 | 头像/logo | 不做管线处理（小、且要稳定 URL），`public/avatars/avatar.png`、`public/logo.png` |
 | 旧图迁移 | `assets/images/*.png`（4 张，共 873KB）原样搬入 `src/assets/images/`，由管线重新压 |
 
-> 实现阶段验证项：Astro 7 的 Markdown 图片是否默认走图片管线。若不默认，退化方案是给需要优化的图用 `<Figure>` 组件（迁移时本来就要碰那些图）。
+> 已验证：Astro 7 的 Markdown 相对路径图片**默认走**图片管线，不需要 `<Figure>` 兜底。
+
+### 13.1 2026-11-19：改成「一篇文章一个文件夹」
+
+**动机**：原来所有配图躺在一个 `src/assets/images/` 平铺池子里，想只把一篇文章的源文件（含图）发给别人根本做不到；拆篇、删篇都容易留孤儿。
+
+**为什么路由不用动**：`glob` loader 生成 id 时已经剥掉了结尾的 `/index`（`astro/dist/content/utils.js` 的 `getContentEntryIdAndSlug`），而 `[...slug].astro` 用 `post.id` 做路由。所以 `a.md` → `a/index.md` 之后 URL **一个字都不变**，已发布链接不会断。
+
+**为什么要额外写一个集成**：Astro 只把 `![]()` 的图片送进资产管线。`[附件.zip](./附件.zip)` 会被原样写进 HTML，`dist` 里却没有 → 线上 404、`pnpm links` 直接报死链（实测：删掉复制过去的文件，检查器立刻报 `./%E9%99%84%E4%BB%B6.zip`）。复制到 `dist<文章 URL>/` 后浏览器按相对路径自然命中，正文写法不用动。
+
+**踩到的坑（记下来免得再踩）**：
+- `astro:build:done` 的 `pages[].pathname` 是**不带前导斜杠**的目录式路径（`blogs/x/`），既不是 `/blogs/x/` 也不是 `/blogs/x/index.html`。按后两种去比会一个都匹配不上，而且**静默**——看着像"没有附件要复制"。所以现在用归一化后的 key 比对，对不上会打印"跳过 N 个"。
+- 粘贴图片插件默认 `encodePath: urlEncodeSpace`，文件名带空格会被写成 `%20`，而检查脚本是裸 `path.resolve` → 报"文件不存在"。现在 `check-images.mjs` 会先 `decodeURIComponent`，但**命名仍不该带空格**。
+- 目标目录不靠猜：`sections` 由 `astro.config.mjs` 从 `src/data/sections.ts` 传入，URL 前缀仍然只定义一处。
+
+### 13.2 2026-11-19：图片再收一层 `images/`
+
+一篇 59 张图、一篇 35 张图之后，打开文章文件夹根本找不到 `index.md`。
+于是把图片全部收进同级的 `images/`：文件夹里只剩 `index.md` + `images/` + 附件。
+
+- 引用统一写成 `images/x.png`（不带 `./`，和粘贴插件自动插入的格式一致）
+- 粘贴配置改成 `"pasteImage.path": "${currentFileDir}/images"`，插件会 `ensureDir`，目录不用手建
+- `scripts/move-images-to-subdir.mjs` 做了一次性迁移：6 篇 / 106 张图 / 105 处引用，孤儿图也一起搬
+- 相对路径多一层对 Astro 没有影响：仍然解析到真实文件、仍然走资产管线（实测产物 `/_astro/shot.*.webp`，2200×663）
+- 附件留在文章根目录；`post-assets` 集成本来就是**递归**复制并保留子目录的，所以哪天要把附件也收进子目录，正文写 `attachment/x.zip` 就行，代码不用改
+
+**迁移**：`scripts/migrate-to-folders.mjs`（一次性，可重跑，fence-aware，保留 CRLF/BOM）。实测 12 篇 / 71 张图 / 71 处引用全部对上，0 遗漏、0 跨篇共用。
 
 ---
 
