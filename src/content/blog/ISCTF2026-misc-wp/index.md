@@ -4,11 +4,9 @@ date: 2026-11-19
 authors:
   - badbadsheep
 tags: ["CTF"]
-draft: true
+draft: false
 summary: 第一场团队赛！
 ---
-
-[test.py](attachment/1.py)
 
 ## 签到：小蓝鲨学写诗
 
@@ -51,8 +49,6 @@ TeLaISbTeSbITeTeXeCsCfISbXeSbXeBaSbCdSbCdXeEsINoSbSnSbCdSbSnSbXeCsFm
 从而得到flag：`ISCTF{Sch00l_2026}`
 
 ## 在眨眼之间
-
-[在眨眼之间-附件.zip](在眨眼之间-附件.zip)
 
 > 她说她不会动的。
 > 可你盯着看久了，会发现她其实一直在动。
@@ -223,9 +219,10 @@ bhciniyeeitirnolmps
 
 ```
 
-果然，降次排列得到单词：`incomprehensibility`
+果然，降次排列得到单词：  `incomprehensibility`
 
-以此密钥成功解开zip拿到flag：`ISCTF{Let_the_frequencies_speak}`
+以此密钥成功解开zip拿到flag：  
+`ISCTF{Let_the_frequencies_speak}`
 
 
 ## 意气风发啊5t5老师 （ Unsolved ）
@@ -241,12 +238,12 @@ b1,rgb,lsb,xy       .. file: SVr3 curses screen image, little-endian
 
 发现视频里有闪烁的灰色色块？
 
-（shibaile orz)
+（shibaile orz）
 
 
 ## PCAP
 
-*本题由 sishijiu、橘子、badbadsheep 合力解出。*
+> 不会流量）先放个队友的wp
 
 1. NTLMv2 认证的SMB流量
 
@@ -264,11 +261,8 @@ hashcat -m 5600 -a 0 -O hashes.txt /usr/share/wordlists/rockyou.txt \
 
 2. SMB3解密
 
-[decrypt_smb3.py](decrypt_smb3.py)
+[decrypt_smb3.py](attachment/decrypt_smb3.py)
 
-`192.168.56.88_C$`（10.0 MB，未随文发布）
-
-[192.168.80.167_Users](192.168.80.167_Users)
 
 > ctfer，我告诉你密码挺简单的 字母大小写+数字 不低于6位
 
@@ -325,7 +319,7 @@ KDF：PBKDF2-HMAC-SHA512
 
 flag：ISCTF{04799754-ed5f-4f32-a3fc-b341bacd}
 
-[ntp1609.hash](ntp1609.hash)
+[ntp1609.hash](attachment/ntp1609.hash)
 
 ```yaml
 hashcat -m 31300 -a 3 ntp1609.hash -1 ?l?u?d ?1?1?1?1?1?1?1?1 --increment --increment-min=6 -O -w 3
@@ -433,13 +427,11 @@ try: binwalk -Me north.wav | foremost | steghide extract | multimon-ng | minimod
 
 图片osint：重点在大宋酒，
 
-![](images/img-079.png)
-
 使用google识图得知图片拍摄地点是开封万岁山大宋武侠城，而在地图上离该地最近且在歌曲中被提到的站点为郑州东站，因此，flag：ISCTF{鉄道唱歌_郑州东站}
 
 ## 我是克劳德?
 
-[task.py](task.py)
+[task.py](attachment/task.py)
 
 打开py文件,上演的是经典橙蓝cp经典桥段，唯一有价值的应该是最后的“最终凭证”的一串数字
 
@@ -821,7 +813,6 @@ if __name__ == "__main__":
 
 ```python
 # -*- coding: utf-8 -*-
-# python decode.py code.py
 import sys
 
 A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
@@ -1068,15 +1059,9 @@ execute as @a[x=31,dx=18,y=62,dy=9,z=-9,dz=18] at @s if block -6 61 -10 minecraf
 
 因此分别在`ISCTF.minecraft\assets\objects\27` `ISCTF 2.minecraft\assets\objects\db`里面搜索hash值即可得到两段音频，改名加ogg后缀即可打开：
 
-[dystopia.ogg](dystopia.ogg)
+[dystopia.ogg](attachment/dystopia.ogg)
 
-[ham.ogg](ham.ogg)
-
-<audio controls src="./dystopia.ogg"></audio>
-
-<audio controls src="./ham.ogg"></audio>
-
-可以直接下载：[dystopia.ogg](./dystopia.ogg) · [ham.ogg](./ham.ogg)
+[ham.ogg](attachment/ham.ogg)
 
 星尘和诗岸唱一半唱的好好的突然来一段摩斯密码。听不来，用频谱图手搓下来：
 
@@ -1089,7 +1074,7 @@ execute as @a[x=31,dx=18,y=62,dy=9,z=-9,dz=18] at @s if block -6 61 -10 minecraf
 
 使用base32解密成功得到第二部分flag！`Part 2: on5_On_C0mpleting`
 
-ham是很明显的sstv，解码得到第三部分 : `Part 3: _The_ChaIIenge_On_`(还是mc字体好耶）(O差点看成0了）
+ham是很明显的sstv，解码得到第三部分 : `Part 3: _The_ChaIIenge_On_`(还是mc字体好耶）（O差点看成0了）
 
 ![](images/img-081.png)
 
@@ -1098,68 +1083,9 @@ ham是很明显的sstv，解码得到第三部分 : `Part 3: _The_ChaIIenge_On_`
 > 很有意思的一道题，手搓性高，不刻意防ai，做的不烧心。
 > 不禁回想起，每天盼着周五放学的晚上，只是同桌联机玩半个小时mc就欣喜若狂的童年...
 
-## 你好，世界
 
-*本题由 橘子 解出。*
+# 后记
+![](images/2026-11-23-23-39-23.png)
+第一场团队赛！和队友合力抢血解题，实在是奇妙的体验。社会赛道945支队伍~~恐怖如斯~~高手云集，排名最终停在了30，没拿奖也算见到世面了。后续等官方wp出了复盘一下每道题^^
 
-首先把图片交给010，观察到文件头都是RIFF–。。。—WEBP，而不是png对应的文件头，然后再每一个文件里搜索zip文件头，将附加文件一一拼接，那么要按什么顺序拼接呢，似乎没说法？（因为主包没玩过崩铁）但还有笨办法，直接逐片试接，所以让ai大人给我们尝试逐片试接，得到了以下的顺序
 
-赛飞儿 → 缇宝 → 阿格莱雅 → 那刻夏 → 风堇 → 刻律德菈 → 海瑟音 → 遐蝶 → 万敌 → 白厄
-
-组合得到恢复压缩包，
-
-![](images/img-010.png)
-
-音频长约 10 秒。查看完整频谱，约 6–12 kHz 区域显示：
-
-`33550336`（实际上，进行一番搜索后得知这其实是昔涟的轮回次数）
-
-用此密码解密zip，得到
-
-![](images/img-028.png)
-
-在png文件的开头发现了base64加密的部分，解密后得到
-
-![](images/img-116.png)
-
-这个时候就需要一些数学的提前学习了（也许可以给ai？不知），在面对一组二元数组和几个参数时，我们观察到这似乎很像椭圆曲线，将D,P作为参数，所有点满足 `x² + y² = 1 + D·x²·y² (mod p)(即Edwards曲线)
-
-用BSGS求出 `1369802·G = P`
-
-计算共享点 `S = 1369802·C1 = (932555302, 3148241903)`，再对每个密文点计算 `M[i] = C2[i] - S`，所得横坐标依次为：
-
-`709, 501, 916, 925, 509, 623, 501`
-
-德谬歌.bin` 是十六进制文本。先 Hex 解码，再按 UTF-8 解码，得到九行中文。
-
-**三千三百万次轮回。我见过挚友一次次死去。**
-
-**我无数次夺回火种，无数次见证世界再度毁灭。**
-
-**我们以为我们在反抗命运，到头来，我们只是演算纸上的一组数据。**
-
-**刻律德拉背负世间唾骂，五百同胞的血浇筑律法的枷锁。**
-
-**阿格莱雅守着火种熬过千年孤寂，舍弃人形，独守万古荒芜。**
-
-**昔涟归于轮回之初，无声消散，无人记得她曾为黄金裔燃尽微光。**
-
-**所有坚守、献祭、抗争、嘶吼，都只是权杖实验里微不足道的一组变量。**
-
-**所谓火种，所谓救赎，从来都是来古士书写毁灭方程式的素材。**
-
-**轮回不休，牺牲无用，所有黄金裔的悲鸣，永远封存在翁法罗斯的永劫之中。**
-
-保留各行汉字、去掉标点，按上述标号的第一个数字为行，后两个数字为列，找出对应汉字
-
-|数字|行|列|汉字|拼音首字母|
-|---|---|---|---|---|
-|709|7|9|嘶|s|
-|501|5|1|阿|a|
-|916|9|16|鸣|m|
-|925|9|25|斯|s|
-|509|5|9|熬|a|
-|623|6|23|燃|r|
-|501|5|1|阿|a|
-
-得到samsara，即轮回，试一下大小写后，flag：ISCTF{SAMSARA}

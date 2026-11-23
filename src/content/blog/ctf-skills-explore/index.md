@@ -13,12 +13,7 @@ summary: skill对于高智商大模型打ctf是累赘吗
 
 感觉当下打ctf用agent是迫不得已。当然清楚ctf的初衷是学习锻炼网络安全知识，Hack for fun not for profit.可是qwb是国赛，可以保研加分，有profit。这样的大型线上赛事里，别人都在狂梭，自己又怎么忍得住老老实实古法？
 
-
-
-
-
-
-
+![](images/2026-11-22-12-51-15.png)
 
 ## ctf-wp-skill
 
