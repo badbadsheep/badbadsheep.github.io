@@ -196,27 +196,48 @@ preBlocks.forEach((pre) => {
   wrap.append(xbar);
 });
 
-/* ── 目录：滚动时高亮当前节 ───────────────────────────────────────────── */
+/* ── 目录：滚动时高亮当前节 + 点击跳转 ─────────────────────────────────
+   电脑右侧面板和手机左侧抽屉共用这套高亮，所以按 [data-toc] 全取。
 
-const toc = document.querySelector<HTMLElement>('[data-toc]');
+   点击目录**不再新增浏览器历史记录**：以前每条目录都是原生锚点，点一次就
+   push 一条带 #hash 的历史；点了几次之后按返回键，会在本文的几个章节之间
+   来回跳，永远回不到上一级页面。现在改成 history.replaceState 更新 hash
+   ＋ 手动 scrollIntoView：地址栏仍然能复制成章节链接，但历史记录不增长，
+   返回键直接回到进入本文之前的页面。
+   Ctrl / Cmd / Shift / 中键点击保持浏览器原生行为（新标签页打开等）。 */
 
-if (toc) {
-  const links = new Map<string, HTMLElement>();
-  toc.querySelectorAll<HTMLAnchorElement>('[data-toc-link]').forEach((a) => {
-    links.set(decodeURIComponent(a.hash.slice(1)), a);
-  });
+const tocNavs = [...document.querySelectorAll<HTMLElement>('[data-toc]')];
 
-  const headings = [...links.keys()]
+if (tocNavs.length) {
+  /** 标题 id → 它在所有目录里的链接（电脑面板一条 + 手机抽屉一条） */
+  const linksById = new Map<string, HTMLAnchorElement[]>();
+  tocNavs.forEach((nav) =>
+    nav.querySelectorAll<HTMLAnchorElement>('[data-toc-link]').forEach((a) => {
+      const id = decodeURIComponent(a.hash.slice(1));
+      const list = linksById.get(id);
+      if (list) list.push(a);
+      else linksById.set(id, [a]);
+    })
+  );
+
+  const headings = [...linksById.keys()]
     .map((id) => document.getElementById(id))
     .filter((el): el is HTMLElement => Boolean(el));
 
   if (headings.length) {
-    let current: HTMLElement | null = null;
+    let currentId = '';
     const setActive = (id: string): void => {
-      if (current) current.removeAttribute('data-active');
-      const link = links.get(id) ?? null;
-      current = link;
-      link?.setAttribute('data-active', '');
+      if (id === currentId) return;
+      currentId = id;
+      linksById.forEach((links, key) => {
+        const on = key === id;
+        for (const link of links) {
+          link.toggleAttribute('data-active', on);
+          // 视觉高亮之外，给读屏软件也补上"当前所在章节"
+          if (on) link.setAttribute('aria-current', 'true');
+          else link.removeAttribute('aria-current');
+        }
+      });
     };
 
     /**
@@ -255,11 +276,133 @@ if (toc) {
     window.addEventListener('resize', onScroll, { passive: true });
     update();
 
-    // 点目录时立刻高亮，不等滚动结束
-    toc.querySelectorAll<HTMLAnchorElement>('[data-toc-link]').forEach((a) =>
-      a.addEventListener('click', () => setActive(decodeURIComponent(a.hash.slice(1))))
-    );
+    const jumpTo = (link: HTMLAnchorElement, id: string): void => {
+      const target = document.getElementById(id);
+      if (!target) return;
+      // 只替换当前这条历史记录：返回键于是回到"进入本文之前"的页面
+      if (location.hash !== link.hash) {
+        try {
+          history.replaceState(history.state, '', link.hash);
+        } catch {
+          /* 内嵌/沙箱环境可能禁止改 history：不更新地址栏，跳转照常 */
+        }
+      }
+      // 不写 behavior：沿用 CSS 的 scroll-behavior（减少动效时自动变瞬时）
+      target.scrollIntoView({ block: 'start' });
+      setActive(id);
+    };
+
+    tocNavs.forEach((nav) => {
+      nav.addEventListener('click', (e) => {
+        const link = (e.target as Element | null)?.closest<HTMLAnchorElement>('[data-toc-link]');
+        if (!link || !nav.contains(link)) return;
+        // 修饰键 / 非左键：交还给浏览器（新标签页里打开这一节）
+        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+          return;
+        }
+        const id = decodeURIComponent(link.hash.slice(1));
+        if (!document.getElementById(id)) return; // 目标不存在：让原生锚点行为兜底
+        e.preventDefault();
+        jumpTo(link, id);
+      });
+    });
   }
+}
+
+/* ── 手机端目录抽屉（原生 <dialog>，从左侧滑入） ───────────────────────
+   原生 modal 已经负责：焦点圈定、页面 inert、Esc / 手机返回手势。
+   这里只做三件事：打开、带滑出动画的关闭、点遮罩关闭。
+   不锁 html/body 的 overflow —— 那会干掉滚动条、让版面横移；
+   滚动穿透由 CSS 的 overscroll-behavior 兜住（见 reading.css）。 */
+
+const tocSheet = document.querySelector<HTMLDialogElement>('[data-toc-sheet]');
+const tocOpenBtn = document.querySelector<HTMLButtonElement>('[data-toc-open]');
+const tocCloseBtn = tocSheet?.querySelector<HTMLButtonElement>('[data-toc-close]');
+const tocSheetPanel = tocSheet?.querySelector<HTMLElement>('.toc-sheet__panel');
+
+if (tocSheet && tocOpenBtn && tocCloseBtn && tocSheetPanel) {
+  const sheet: HTMLDialogElement = tocSheet;
+  const openBtn: HTMLButtonElement = tocOpenBtn;
+  const panel: HTMLElement = tocSheetPanel;
+  const desktopMq = window.matchMedia('(min-width: 62rem)');
+  let closing = false;
+
+  /** 真正 close()：浏览器据此把焦点还给触发按钮 */
+  const finishClose = (): void => {
+    sheet.removeAttribute('data-closing');
+    closing = false;
+    if (sheet.open) sheet.close();
+    openBtn.setAttribute('aria-expanded', 'false');
+  };
+
+  const closeSheet = (animated = true): void => {
+    if (!sheet.open || closing) return;
+    openBtn.setAttribute('aria-expanded', 'false');
+    if (!animated || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      finishClose();
+      return;
+    }
+    closing = true;
+    sheet.setAttribute('data-closing', '');
+    let done = false;
+    const settle = (): void => {
+      if (done) return;
+      done = true;
+      panel.removeEventListener('transitionend', onEnd);
+      finishClose();
+    };
+    const onEnd = (e: TransitionEvent): void => {
+      if (e.target === panel && e.propertyName === 'transform') settle();
+    };
+    panel.addEventListener('transitionend', onEnd);
+    // 兜底：动画事件没来（后台标签页 / 奇怪的 UA）也不能把用户困住
+    window.setTimeout(settle, 500);
+  };
+
+  const openSheet = (): void => {
+    if (sheet.open) return;
+    sheet.showModal();
+    openBtn.setAttribute('aria-expanded', 'true');
+  };
+
+  openBtn.addEventListener('click', openSheet);
+  tocCloseBtn.addEventListener('click', () => closeSheet());
+
+  // 点遮罩关闭：dialog 铺满视口，面板之外的点击 target 就是 dialog 本身。
+  // 按下和抬起都在外面才算，避免"面板里拖选文字、松手落在遮罩上"被误关。
+  let pressedOutside = false;
+  sheet.addEventListener('pointerdown', (e) => {
+    pressedOutside = !panel.contains(e.target as Node);
+  });
+  sheet.addEventListener('click', (e) => {
+    if (pressedOutside && !panel.contains(e.target as Node)) closeSheet();
+  });
+
+  // Esc / 返回手势：先拦成滑出动画，动画结束再真正 close
+  sheet.addEventListener('cancel', (e) => {
+    if (!e.cancelable) return;
+    e.preventDefault();
+    closeSheet();
+  });
+
+  // 兜底同步状态：浏览器不经过我们的 closeSheet 直接关掉（例如连续 Esc 时
+  // cancel 变成不可取消）也把按钮状态和临时标记复位
+  sheet.addEventListener('close', () => {
+    sheet.removeAttribute('data-closing');
+    closing = false;
+    openBtn.setAttribute('aria-expanded', 'false');
+  });
+
+  // 点了某一节目录：马上收起抽屉（不等滑出动画），滚动交给上面的目录点击逻辑
+  sheet.addEventListener('click', (e) => {
+    if ((e.target as Element | null)?.closest('[data-toc-link]')) finishClose();
+  });
+
+  // 抽屉开着的时侯窗口被拉宽 / 设备旋转到电脑版式：直接收掉，
+  // 否则焦点会留在一个被 CSS 藏起来的模态里
+  desktopMq.addEventListener('change', (e) => {
+    if (e.matches && sheet.open) finishClose();
+  });
 }
 
 /* ── 目录拖尾：预览线身后的彩色小点 ─────────────────────────────────────

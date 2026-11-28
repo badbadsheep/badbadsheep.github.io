@@ -1192,6 +1192,62 @@ JS 每帧判断这一趟是不是换层（`A.fam !== B.fam`，即 笔记↔故�
 
 ---
 
+## 34. 第十三轮：手机两处 bug + 移动端目录 + 拖拽提示 + 返回键 + 现代化审计
+
+### 34.1 手机点击首屏时彩色线条闪烁
+
+| 现象 | 根因 | 改法 |
+|---|---|---|
+| 手机点一下首屏，11 条彩色线/图形闪一下 | 触摸 tap 后浏览器仍会给 `.hero` 命中 `:hover`（实测 heroHover=true）。`.hero:hover .hero__art line/path { will-change: transform }` 把 11 个 SVG 元素提升为合成层，而 `vector-effect: non-scaling-stroke` 在合成层里重栅格化时会"描边忽隐忽现" | `facade.css`：hover 提升收进 `@media (hover: hover) and (pointer: fine)`；`[style*='transform']` 那条保留（只有 JS 真写过 transform 才命中，触屏笔电用鼠标仍生效）。`Hero.astro`：`pointerleave` 也加 `isTouch()` 早退（触摸抬手会派发 pointerleave，空写也省一次样式重算）。桌面 240ms 过渡 / 5px 推开 / COL_MS=400 收缩参数一字未动 |
+
+验证：tap / 按住 400ms / 手指微抖，截图逐帧 diff 全 0；CDP screencast 修复后 tap 后渲染器 0 帧；把旧 hover 规则注入回去重放 tap → 76251 px 变化（与改前同数），AB 对照闭环。
+
+### 34.2 手机滚动时最下方一条静态方格"停滞"
+
+| 根因 | 改法 |
+|---|---|
+| `.screens__art` 原为 `height:100svh; margin-bottom:-100svh`。手机地址栏收起后可视视口 = 100dvh/100lvh，画布比视口矮 80–100px，底部露出 `.screens` 的 CSS 静态方格（它不参与四屏图案 morph） | 在 `@supports (height: 100lvh)` 里同时把 `height` 与 `margin-bottom` 改成 `100lvh` / `-100lvh`（负 margin 抵消文档流，只改 height 会让四屏整体多出 80–100px）；基础规则保留 svh 兜底。选 lvh 而不是 dvh：lvh 固定为最大视口，地址栏展开/收起不会让画布反复 resize，无抖动 |
+
+验证：mobile 11 个 scrollY 断言 `canvas.top<=0 && canvas.bottom>=innerHeight` 全 true；88px override 复现底部方格 → 修复后消失；四屏四张两两 diff 142796–206172 px，三段 morph 均为过渡非硬切；桌面 5 个边界点与改前 diff=0。
+
+### 34.3 手机端目录抽屉（左下角小方块）
+
+- 左下角固定 36×36 小方块（`.toc-toggle`），尺寸 / 发丝边框 / 模糊底与右上角 `.nav__btn` 完全一致；图标是"带项目符号的列表"，与三道杠（栏目）区分。
+- 点开从左侧滑出抽屉：原生 `<dialog>` + `showModal()`，焦点圈定 / 页面 inert / Esc / 返回手势由浏览器负责；`@starting-style` 负责滑入，关闭用 `data-closing` + `transitionend` 再 `close()`（滑出动画可见）。点遮罩、Esc、目录项都能关；旋转/拉宽到电脑版式自动收掉。
+- 桌面右侧面板与手机抽屉共用一套高亮（`[data-toc]` 全取），原滚动高亮逻辑不变，新增 `aria-current` 给读屏软件。
+- 顺手过滤空标题：正文里 `#### <sizeof>` 这类裸尖括号会被 Astro 当 HTML 标签，标题文本 / slug 都为空 —— 目录里不再出现点不动的空白项。
+
+### 34.4 电脑端拖拽手柄加双向箭头
+
+`.toc-grip` 12px → 18px（只是热区变宽，竖条仍在正中），竖条中点左右各一个 `← / →` 箭头（SVG；默认发丝灰，hover / focus-visible / 拖动时变白），`pointer-events:none` 不吃拖动事件。键盘 `←/→/Home/End` 行为不变。
+
+### 34.5 返回键不再在章节目录之间循环
+
+根因：TOC 是原生锚点，每点一次就 push 一条 `#hash` 历史，返回键逐个回退目录项。
+改法：拦截目录左键点击（修饰键 / 中键放行给浏览器），`history.replaceState` 只替换当前历史记录的 hash，再 `scrollIntoView({ block: 'start' })`（沿用 CSS `scroll-behavior: smooth`，减少动效时自动瞬时）。地址栏仍可复制成章节链接、Ctrl+点击仍可新标签页打开，但历史记录不增长 —— 返回键直接回到进入本文之前的页面。
+
+验证：从 `/notes/` 进文章 → 连点 3 个目录 → `history.length` 不变、URL = 最后一节 → 返回键回到 `/notes/`。
+
+### 34.6 README 大纲 + 现代 Web 审计（本轮只出文档，不改代码）
+
+- `docs/readme-outline.md`：README 重写骨架 + 当前 README 的 10 处事实错误/结构问题（`.env.example` 不存在、`credits.md` 已并入 `/about`、示例目录名过期、编号残留等），留给你自己填。
+- `docs/modern-web-audit.md`：按 modern-web-guidance 的 legacy-scan（60 个文件命中 6、剔除误报 2、确认 4）+ 19 个指南逐项复核；核心建议（抽屉/搜索层改原生 `<dialog>`、灯箱 `closedby`、复制去 execCommand、删 `/proto` + matter-js、清理未用图/一次性脚本）+ 每项代价/风险，**全部未执行**，等你逐项决定。
+
+### 34.7 验证（本轮）
+
+```
+pnpm verify        字体子集 570 字 → 87.0KB；图片引用 112 条全过；
+                   astro check 58 文件 0 error 0 warning（5 条既有 hint）；
+                   build 16 页；站内链接 18 页 590 条 0 死链
+手机 412×839@2.625  tap/按住/微抖 截图 diff 0；screencast tap 后 0 帧
+桌面 1440×900       idle/hover/after-leave 与改前 diff 0；线 2215.257 → 0 → 2215.257
+移动目录            开/关滑入滑出动画实测（-320 → 0 / 0 → -320）
+返回键              3 次目录点击后 history.length 不变，back → /notes/
+320px / 900px       目录按钮/抽屉无横向溢出，62rem 断点两侧正确切换
+```
+
+---
+
 ## 附：首页线框（你给的版本，用于对照实现）
 
 ```

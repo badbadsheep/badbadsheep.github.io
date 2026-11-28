@@ -249,13 +249,15 @@
   padding: var(--s-6) var(--s-4) var(--s-6) var(--s-6);
 }
 
-/* 拖拽手柄：贴着分隔线的一条窄边，带一个可见的短竖条 */
+/* 拖拽手柄：贴着分隔线的一条窄边，带一个可见的短竖条。
+   竖条中间左右各放一个箭头（← →），一眼看出"这里可以左右拖"。
+   手柄加宽到 18px 只是热区变宽，竖条位置仍在正中间。 */
 .toc-grip {
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
-  width: 12px;
+  width: 18px;
   cursor: col-resize;
   touch-action: none;
 }
@@ -263,7 +265,7 @@
 .toc-grip::after {
   content: '';
   position: absolute;
-  left: 5px;
+  left: 8px;
   top: 50%;
   width: 2px;
   height: 56px;
@@ -272,10 +274,28 @@
   transition: background var(--d-fast) var(--ease-out);
 }
 
+/* 箭头永远和竖条一起出现：默认是发丝线灰，悬停 / 键盘聚焦 / 拖动时变实心白 */
+.toc-grip__arrows {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  display: block;
+  transform: translateY(-50%);
+  color: var(--line-2);
+  transition: color var(--d-fast) var(--ease-out);
+  pointer-events: none;
+}
+
 .toc-grip:hover::after,
 .toc-grip:focus-visible::after,
 .toc-panel[data-dragging] .toc-grip::after {
   background: var(--fg);
+}
+
+.toc-grip:hover .toc-grip__arrows,
+.toc-grip:focus-visible .toc-grip__arrows,
+.toc-panel[data-dragging] .toc-grip__arrows {
+  color: var(--fg);
 }
 
 .toc-grip:focus-visible {
@@ -392,6 +412,155 @@ html.is-toc-dragging .toc-panel {
   padding-left: calc(var(--s-4) + var(--s-2));
   font-size: var(--t-xs);
   color: var(--fg-2);
+}
+
+/* ── 手机端目录：左下角小方块 + 从左侧滑出的抽屉 ──────────────────────
+   电脑上目录钉在右侧（.toc-panel），手机上放不下，所以改成抽屉：
+   · 触发按钮固定在左下角，尺寸 / 边框 / 模糊底和右上角 .nav__btn 完全一致
+   · 图标是"带项目符号的列表"（目录），不是三道杠（栏目），两个入口不重复
+   · 抽屉用原生 <dialog>：showModal() 自带焦点圈定、Esc / 返回手势关闭、
+     页面 inert；JS 只负责开、关和一小段滑入/滑出动画（见 reading.ts） */
+.toc-toggle {
+  position: fixed;
+  left: max(var(--s-4), env(safe-area-inset-left));
+  bottom: max(var(--s-4), env(safe-area-inset-bottom));
+  z-index: var(--z-nav);
+  display: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--fg-2);
+  cursor: pointer;
+  transition: color var(--d-fast) var(--ease-out), border-color var(--d-fast) var(--ease-out),
+    background var(--d-fast) var(--ease-out), opacity var(--d-base) var(--ease-out);
+}
+
+.toc-toggle:hover {
+  color: var(--fg);
+  border-color: var(--line-2);
+  background: var(--bg);
+}
+
+.toc-toggle svg {
+  display: block;
+}
+
+/* 栏目抽屉 / 搜索层打开时让位，和右上角导航簇的行为一致 */
+body[data-overlay] .toc-toggle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toc-sheet {
+  /* 重置 <dialog> 的 UA 样式，让它铺满视口；面板自己绝对定位在左边 */
+  inset: 0;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+/* 模态打开时别让滚动穿透到页面（::backdrop 默认不是滚动容器，要单独写） */
+.toc-sheet:modal {
+  overscroll-behavior: contain;
+}
+
+.toc-sheet::backdrop {
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+  overflow: hidden;
+  overscroll-behavior: contain;
+  transition: background-color var(--d-base) var(--ease-out);
+}
+
+/* 关的时候由 JS 先加 data-closing、等滑出动画结束再 close()，
+   所以这里始终是"打开着"的状态，只是把 ::backdrop 淡掉 */
+.toc-sheet[data-closing]::backdrop {
+  background-color: transparent;
+}
+
+.toc-sheet[open]::backdrop {
+  @starting-style {
+    background-color: transparent;
+  }
+}
+
+.toc-sheet__panel {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(20rem, 84vw);
+  padding-top: env(safe-area-inset-top);
+  background: var(--bg);
+  border-right: var(--hairline) solid var(--line);
+  transform: translateX(-100%);
+  transition: transform var(--d-base) var(--ease-out);
+}
+
+.toc-sheet[open] .toc-sheet__panel {
+  transform: none;
+
+  @starting-style {
+    transform: translateX(-100%);
+  }
+}
+
+.toc-sheet[data-closing] .toc-sheet__panel {
+  transform: translateX(-100%);
+}
+
+.toc-sheet__head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: var(--nav-h);
+  padding-inline: var(--s-5);
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.toc-sheet__title {
+  margin: 0;
+  font-family: var(--f-mono);
+  font-size: var(--t-s);
+  letter-spacing: 0.22em;
+  color: var(--fg-2);
+}
+
+.toc-sheet__close {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: var(--hairline) solid var(--line-2);
+  background: none;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.toc-sheet__close:hover {
+  border-color: var(--fg);
+}
+
+/* 只有手机上才用抽屉；手机上目录条目多，自己滚 */
+.toc--sheet {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--s-4) var(--s-4) calc(var(--s-4) + env(safe-area-inset-bottom));
 }
 
 /* ── 正文排版 ─────────────────────────────────────────────────────────── */
@@ -1235,6 +1404,11 @@ html.is-toc-dragging .toc-panel {
 @media (max-width: 61.9rem) {
   .toc-panel {
     display: none;
+  }
+
+  /* 目录放不进右侧栏：左下角的小方块负责把抽屉叫出来 */
+  .toc-toggle {
+    display: grid;
   }
 
   /* 目录没了，正文把右侧的留白还回去（同样要两级选择器才盖得住 .wrap） */

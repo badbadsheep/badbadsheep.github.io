@@ -207,14 +207,21 @@ const [first, ...rest] = ['badbad', 'sheep'];
         });
       };
 
-      hero.addEventListener('pointermove', onMove as EventListener);
-      hero.addEventListener('pointerleave', () => {
+      /* 指针离开首屏：把推开/收缩复位。
+         ★ 触摸指针抬手时浏览器也会派发 pointerleave；手机上这个回调必须完全 no-op：
+           触摸路径从来没写过 transform / --grid-*，复位是空写，但空写也会让样式系统
+           重新计算一遍，没必要。鼠标 / 触控笔照旧复位（线伸回原长、点阵视差归位）。 */
+      const onLeave = (e: PointerEvent) => {
+        if (isTouch(e)) return;
         parts.forEach((el) => (el.style.transform = ''));
         geo.style.setProperty('--grid-x', '0px');
         geo.style.setProperty('--grid-y', '0px');
         col.forEach((s) => (s.hit = false));
         kick();
-      });
+      };
+
+      hero.addEventListener('pointermove', onMove as EventListener);
+      hero.addEventListener('pointerleave', onLeave as EventListener);
     }
   </script>
 </section>

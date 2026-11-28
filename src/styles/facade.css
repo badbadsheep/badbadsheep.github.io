@@ -103,20 +103,36 @@ html.is-home {
   --l-shape: #8c8c8c;
 }
 
-/* 每条线/每个图形都是独立元素：指针靠近时可以各自被推开 */
+/* 每条线/每个图形都是独立元素：指针靠近时可以各自被推开。
+   transition 本身不区分设备：手机上没有任何代码会写 transform（Hero.astro 里
+   pointerType === 'touch' 直接 return），所以这条 transition 在触摸路径上永远
+   不会启动；留在全局是为了触屏笔记本外接鼠标时动效照常平滑。 */
 .hero__art line,
 .hero__art path {
   transition: transform 240ms var(--ease-out);
 }
 
 /* will-change 只在真的开始交互后才给。常驻的话这 11 个 SVG 元素会一直各自合成一层，
-   而 vector-effect: non-scaling-stroke（下面那条）在合成层里是出了名的会"描边忽隐忽现"——
-   手机上就表现成彩色线条一闪一闪。手机没有 hover，所以那边永远不会提升图层。 */
-.hero:hover .hero__art line,
-.hero:hover .hero__art path,
+   而 vector-effect: non-scaling-stroke（下面那条）在合成层里是出了名的会"描边忽隐忽现"
+   —— 手机上就表现成彩色线条一闪一闪。
+
+   ★ 两条提升路径分开写，因为触发方式不同：
+     1) `[style*='transform']`：只有 JS 真的写过 transform 才命中。Hero.astro 里
+        触摸指针直接 return，手机上永远不命中；触屏笔记本用鼠标/触控笔时照常生效。
+     2) `.hero:hover`：**必须**限定在「真正支持悬停的精细指针」下。手机 tap 之后
+        Chromium 会给被点的元素命中 :hover（实测 heroHover=true），若这里不限定，
+        点一下首屏就会把这 11 个元素提升合成层、重栅格化描边 —— 也就是那个闪烁。
+        用 hover/pointer 媒体查询而不是 JS 判断：设备能力是 CSS 能知道的输入设备事实。 */
 .hero__art line[style*='transform'],
 .hero__art path[style*='transform'] {
   will-change: transform;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hero:hover .hero__art line,
+  .hero:hover .hero__art path {
+    will-change: transform;
+  }
 }
 
 /* 彩色线固定 1.8 CSS px：用 non-scaling-stroke，线宽不跟图的缩放走，
@@ -254,17 +270,34 @@ html.is-home {
 
 /* 四屏的动态底纹画布。由 screens.ts 自己插进来（拿不到 WebGL2 就压根不插，
    于是上面那张静态方格原样当降级画面，页面一个字节都不变）。
-   sticky + 100svh：只覆盖「四屏」这一段的视口，滚出四屏自动让开；
-   margin-bottom: -100svh 把它在文档流里的高度抵消掉，四屏排版一格不变。 */
+   sticky + 100lvh：只覆盖「四屏」这一段的视口，滚出四屏自动让开；
+   margin-bottom: -100lvh 把它在文档流里的高度抵消掉，四屏排版一格不变。
+
+   ★ 为什么是 lvh 不是 svh：手机地址栏收起后，可视视口高 = 100dvh/100lvh，
+     比 100svh 高 80–100px。用 svh 时画布比可视视口矮一截，底部会露出 .screens
+     上的 CSS 静态方格（它不参与四屏图案 morph）—— 就是"最下方一条方格停滞"。
+     lvh = 最大视口（地址栏收起时的高度），任何地址栏状态下都 ≥ 当前可视视口；
+     又因为是固定的最大值，地址栏展开/收起不会让画布反复改尺寸（dvh 会），
+     不会引入 resize 抖动。height 和 margin-bottom 必须同时换：负 margin 抵消
+     文档流高度，只改 height 会让四屏整体多出 80–100px。 */
 .screens__art {
   position: sticky;
   top: 0;
   z-index: 0;
   display: block;
   width: 100%;
+  /* 兜底：不支持 lvh 的老浏览器（Large viewport units 之前）保持原来的 svh 行为，
+     这一步没有引入新的降级路径，只是把旧值留在原地。 */
   height: 100svh;
   margin-bottom: -100svh;
   pointer-events: none;
+}
+
+@supports (height: 100lvh) {
+  .screens__art {
+    height: 100lvh;
+    margin-bottom: -100lvh;
+  }
 }
 
 /* 浅色主题下网格换成黑线 —— SVG 是 data URI，颜色写死在字符串里，用不了变量 */

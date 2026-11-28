@@ -8,22 +8,35 @@ draft: false
 summary: pcap！？pcapng！！？？
 ---
 
-# wireshark界面简析
+## wireshark界面简析
 
 第一次做流量题，听说wireshark是分析流量的利器？但打开wireshark的一瞬间很懵，中文菜单栏和英文协议解析鱼龙混杂，五颜六色细长条铺满屏幕...不妨先随便挑一个题，边查边做，生啃硬做，学习一下wireshark的界面。
-
-**人民铁路为人民**
->来源：ISCTF2026 MISC （2026/11/18）
 
 拖入wireshark的一瞬间是这样：
 ![](images/2026-11-18-21-57-23.png)
 
-## 协议解析框（协议树）
+最上面是工具栏，其余3部分是数据包列表、协议解析框、数据包原始字节。
+
+### 数据包列表
+
+为啥是五颜六色的？
+
+
+### 原始字节
+
+为啥ASCII那一块是乱码？
+
+右侧的ASCII部分只是把原始字节按每字节硬转码，因此正常情况下不会显示可读的明文。（当出现了明文，或者某部分重复出现时可引起警惕）
+
+
+主要可以看看协议解析框：
+
+### 协议解析框（协议树）
 
 聚焦在左下方的协议分析框部分，先只看第一部分
 ![](images/2026-11-18-11-16-02.png)
 
-### Frame物理帧
+#### Frame物理帧
 第一部分叫做Frame物理帧，是wireshark在抓包时自己生成的，并不是传输内容的本体，可以理解为快递单，不是货物本身，但传达一定信息。这里一共有19行，接下来逐行讲解：
 ```
 Frame 219: Packet, 936 bytes on wire (7488 bits), 936 bytes captured (7488 bits)
@@ -106,7 +119,7 @@ MAC 地址：逐跳寻址
 
 逐个板块分析一下：
 
-### Ethernet II
+#### Ethernet II
 ![](images/2026-11-21-18-50-09.png)
 
 `Src: Intel_a1:d0:15(c0:a5:e8:a1:d0:15),`
@@ -151,33 +164,163 @@ sourse是同理的：
 
 `[Stream index: 0]`:wireshark给数据分配的Ethernet 流编号
 
-### IPv4
+#### IPv4
 
 ![](images/2026-11-21-19-45-22.png)
 
-Internet Protocol Version 4, Src: 192.168.10.10, Dst: 192.168.10.20  
-    0100 .... = Version: 4
+`Internet Protocol Version 4, Src: 192.168.10.10, Dst: 192.168.10.20 ` 
+    `0100 .... = Version: 4`
 
-写明了通信双方的IP地址、IP版本、IP头部长度。
+写明了通信双方的IP地址、IP版本、IP头部长度（不是UDP端口，那个是在下面的一栏里）
 
-    .... 0101 = Header Length: 20 bytes (5)
-    Differentiated Services Field: 0x00 (DSCP: CS0, ECN: Not-ECT)
-        0000 00.. = Differentiated Services Codepoint: Default (0)
-        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)
-    Total Length: 922
-    Identification: 0x0001 (1)
-    000. .... = Flags: 0x0
-        0... .... = Reserved bit: Not set
+`    .... 0101 = Header Length: 20 bytes (5)`
+
+代表表示 IPv4 头部占用 20 字节（不重要）
+
+`    Differentiated Services Field: 0x00 (DSCP: CS0, ECN: Not-ECT)`
+`        0000 00.. = Differentiated Services Codepoint: Default (0)`
+`        .... ..00 = Explicit Congestion Notification: Not ECN-Capable Transport (0)`
+
+DSCP：用于区分不同服务质量。  
+ECN：用于显式拥塞通知。
+
+这一坨大致表示数据包的服务质量和拥塞通知信息（不重要）
+
+`    Total Length: 922`
+这里的总长度由IP头的20字节（见上面）和902IP负载构成
+
+`   Identification: 0x0001 (1)`
+这是 IPv4 的标识字段。当IP数据包较大需要拆分时，它们使用相同的标识值，接收端就能根据相关字段判断这些分片属于同一个原始数据包。
+
+````
+这一坨不太重要）
+    000. .... = Flags: 0x0  #注意这不是flag XD
+        0... .... = Reserved bit: Not set  
         .0.. .... = Don't fragment: Not set
         ..0. .... = More fragments: Not set
     ...0 0000 0000 0000 = Fragment Offset: 0
+
+DF	0	没有禁止分片
+MF	0	后面没有更多分片
+Offset	0	从原始数据开头开始
+
+
     Time to live: 64
+TTL表示数据包允许经过的最大路由转发次数，当前还剩64次。
     Protocol: UDP (17)
+使用UDP传输
     Header Checksum: 0xe1e3 [validation disabled]
     [Header checksum status: Unverified]
+头部校验值，检查IPv4 头部坏了没
     Source Address: 192.168.10.10
     Destination Address: 192.168.10.20
     [Stream index: 0]
+````
+**总之这一坨可以不怎么看，因为关键信息在流量包概览处都会标出来（要是有缺的可以右键显示）**
 
+```
+User Datagram Protocol, Src Port: 40000, Dst Port: 50004
+    Source Port: 40000
+    Destination Port: 50004
+    Length: 902
+源端口、目标端口、长度（含8字节的总长度，因此纯应用数据是后面的894字节）
+    Checksum: 0x7370 [unverified]
+    [Checksum Status: Unverified]
+    [Stream index: 0]
+校验值和wireshark自己给的编号
+    [Stream Packet Number: 53]
+在UDP流中的编号
+    [Timestamps]
+        [Time since first frame: 520.000000 milliseconds]
+        [Time since previous frame: 10.000000 milliseconds]
+字面意思，离第一个包的时间和离上一个的时间。
+    UDP payload (894 bytes)
+正如前面所说，纯数据载荷是894字节
+```
+可以顺带总结一下目前出现的各种长度：
+Frame Length: 936 bytes
+IPv4 Total Length: 922
+UDP Length: 902。
+UDP Payload: 894
 
+可以从中窥见一层层封装的结构~
 
+当鼠标在左侧选中时，右侧的数据包原始字节也会有对应的显示（右侧的ASCII部分只是把原始字节按每字节硬转码，因此正常情况下不会显示可读的明文。当出现了明文，或者某部分重复出现时可引起警惕）
+![](images/2026-11-25-08-49-59.png)
+
+#### data
+
+最后一层就是data了。为了更好的分析data，我们可以开始了解一些具体的分析方法了——
+
+### 右键？
+
+![](images/2026-11-25-09-00-34.png)
+
+```
+Mark/Unmark Selected     Ctrl+M 可以给数据包打上标记
+Ignore/Unignore Selected    Ctrl+D 忽略数据包（不会删除）想恢复按菜单栏的Edit找相关选项
+设置/取消设置 时间参考    Ctrl+T 之后的数据包会把这个数据包作为开始来记录时间
+
+时间平移（不用管）
+分组注释 （不用管）
+编辑解析的名称 不用管）
+
+作为过滤器应用 > 把鼠标放在哪里，就用哪里的条件作为显示过滤器，免得手敲（当然还是得学会手敲，所以也没啥用）
+
+对话过滤器 > 差不多，都是过滤用的
+
+对话着色 > 字面意思
+
+在新窗口显示分组(W)  字面意思
+
+SCTP > 布吉岛 应该没用
+
+复制 > 比较有用
+ 
+协议首选项 > （最好不乱动
+
+Decode As  可以指定wireshark按照某种协议来解析浏览量包
+```
+上面其实自己右键试试就清楚了。
+
+唯一的经常用的是**追踪流**，可以把属于同一条通信的相关数据包关联起来，按照通信方向和顺序集中观察
+
+> 好的可以开始刷题了 Let's Gooooo~
+
+## 喵喵喵
+
+*大部分流量题目是一个pcap或pcapng起手，在看懂大致过程并提取关键数据后，流量分析的使命差不多就结束了，接下来就进入misc隐写或web领域了。下面的题目会重点记录流量分析这个前导部分。*
+
+### 人民铁路为人民
+>来源：ISCTF2026 MISC （2026/11/18）
+
+UDP流，发现时间间隔时间都是完美的0.1秒
+
+![](images/2026-11-25-09-22-49.png)
+
+追踪流发现每个数据包只有开头部分有一点点数据，其余位置都是0填充
+![](images/2026-11-25-09-30-42.png)
+
+考虑使用tshark + python组合拳把数据过滤出来（tshark是Wireshark官方提供的命令行网络协议分析工具）
+
+比如这个题：
+`tshark -r railway.pcap -Y "udp"
+
+这里可以用`tshark -r railway.pcap -Y "udp" -T fields -e udp.payload > extract.txt`把所有udp流的载荷提取到一个txt文件。
+
+| 指令 | 作用 | 
+|--|--|
+|-r	| 读取 PCAP 文件|
+|-Y "udp"|	只筛选 UDP|
+|-T fields|	按字段导出|
+|-e udp.payload	|UDP 负载内容|
+|-e ...|(还可以指代提取其他某些部分)|
+|> extract.txt	|保存为文件|
+
+提取出来，前半段每一段载荷只有前面一小段字节内容，后面都是0；后面半段是满满的十六进制。
+![](images/2026-11-25-10-29-05.png)
+
+![](images/2026-11-25-10-43-36.png)
+观察发现每段数据都是80开头，搜索发现是RTP音频的标识符，原来传输对象是一段音频。写一个脚本提取出音频，进入音频隐写misc领域（后续略）。
+
+###
